@@ -3,8 +3,8 @@ import type { Grievance, GrievanceResponse, ClusterRead, ClusterDetail } from ".
 
 const BASE_URL = Platform.select({
   android: "http://10.0.2.2:8000",
-  ios: "http://localhost:8000",
-  default: "http://localhost:8000",
+  ios: "http://192.168.29.73:8000",
+  default: "http://192.168.29.73:8000",
 });
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
