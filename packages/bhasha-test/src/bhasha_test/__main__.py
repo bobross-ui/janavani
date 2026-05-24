@@ -14,12 +14,30 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
-def _load_local_provider() -> Any:
+def _ensure_api_path() -> None:
     api_path = _repo_root() / "apps" / "api"
     if str(api_path) not in sys.path:
         sys.path.insert(0, str(api_path))
+
+
+def _load_local_provider() -> Any:
+    _ensure_api_path()
     module = importlib.import_module("app.services.ai_provider")
     return module.LocalAIProvider()
+
+
+def _load_sarvam_provider() -> Any:
+    _ensure_api_path()
+    module = importlib.import_module("app.services.ai_provider")
+    return module.SarvamAIProvider()
+
+
+def _load_provider(name: str) -> Any:
+    if name == "local":
+        return _load_local_provider()
+    if name == "sarvam":
+        return _load_sarvam_provider()
+    raise ValueError(f"unknown provider: {name}")
 
 
 def _read_cases(path: Path) -> list[dict[str, Any]]:
@@ -34,17 +52,7 @@ def _write_report(path: Path, report: dict[str, Any]) -> None:
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def evaluate_command(args: argparse.Namespace) -> int:
-    try:
-        cases = _read_cases(Path(args.fixture))
-        provider = _load_local_provider()
-        report = evaluate_cases(cases, provider)
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-    if args.output:
-        _write_report(Path(args.output), report)
-
+def _print_summary(report: dict[str, Any]) -> None:
     summary = report["summary"]
     print(
         " ".join(
@@ -56,7 +64,82 @@ def evaluate_command(args: argparse.Namespace) -> int:
             ]
         )
     )
-    return 0 if summary["passed_cases"] == summary["total_cases"] else 1
+
+
+def evaluate_command(args: argparse.Namespace) -> int:
+    try:
+        cases = _read_cases(Path(args.fixture))
+        provider = _load_provider(args.provider)
+        report = evaluate_cases(cases, provider)
+    except (ValueError, NotImplementedError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if args.output:
+        _write_report(Path(args.output), report)
+
+    _print_summary(report)
+    return 0 if report["summary"]["passed_cases"] == report["summary"]["total_cases"] else 1
+
+
+def compare_command(args: argparse.Namespace) -> int:
+    try:
+        cases = _read_cases(Path(args.fixture))
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    reports: dict[str, dict[str, Any]] = {}
+    for name in ("local", "sarvam"):
+        try:
+            prov = _load_provider(name)
+            report = evaluate_cases(cases, prov)
+            reports[name] = report
+        except NotImplementedError:
+            reports[name] = {
+                "summary": {
+                    "total_cases": len(cases),
+                    "passed_cases": 0,
+                    "field_accuracy": {},
+                    "extraction_score": 0.0,
+                    "redaction_safety": 0.0,
+                    "overall_score": 0.0,
+                    "error": f"{name} provider not available — extraction not implemented",
+                },
+                "cases": [],
+            }
+
+    # Print per-provider summaries
+    for name, report in reports.items():
+        print(f"--- {name} ---")
+        _print_summary(report)
+        if "error" in report["summary"]:
+            print(f"  error: {report['summary']['error']}")
+
+    # Delta report
+    print()
+    print("--- delta ---")
+    local_score = reports["local"]["summary"]["overall_score"]
+    sarvam_score = reports["sarvam"]["summary"]["overall_score"]
+    delta = local_score - sarvam_score
+    print(f"overall_score_local={local_score:.3f}")
+    print(f"overall_score_sarvam={sarvam_score:.3f}")
+    print(f"overall_score_delta={delta:+.3f}")
+
+    if args.output:
+        _write_report(
+            Path(args.output),
+            {
+                "local": reports["local"],
+                "sarvam": reports["sarvam"],
+                "delta": {
+                    "overall_score_local": local_score,
+                    "overall_score_sarvam": sarvam_score,
+                    "overall_score_delta": delta,
+                },
+            },
+        )
+
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -66,7 +149,19 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate = subparsers.add_parser("evaluate", help="Evaluate extraction/redaction fixtures")
     evaluate.add_argument("fixture", help="Path to JSON fixture file")
     evaluate.add_argument("--output", help="Optional path to write JSON report")
+    evaluate.add_argument(
+        "--provider",
+        choices=["local", "sarvam"],
+        default="local",
+        help="Provider to use for extraction (default: local)",
+    )
     evaluate.set_defaults(func=evaluate_command)
+
+    compare = subparsers.add_parser("compare", help="Run both providers on the same fixture and compare")
+    compare.add_argument("fixture", help="Path to JSON fixture file")
+    compare.add_argument("--output", help="Optional path to write JSON delta report")
+    compare.set_defaults(func=compare_command)
+
     return parser
 
 
