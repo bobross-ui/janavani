@@ -24,6 +24,7 @@ export interface Grievance {
   cluster_id: string | null;
   status: string;
   consent_public: boolean;
+  audio_key?: string;
   created_at: string;
 }
 

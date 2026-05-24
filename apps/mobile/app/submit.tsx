@@ -4,7 +4,7 @@ import { AudioRecorder } from "../components/audio-recorder";
 import { ClusterSuggestionCard } from "../components/cluster-suggestion-card";
 import { GrievanceForm } from "../components/grievance-form";
 import { TranscriptReview } from "../components/transcript-review";
-import { submitGrievance } from "../lib/api";
+import { submitGrievance, uploadAudioGrievance } from "../lib/api";
 import type { GrievanceResponse } from "../lib/types";
 
 const MOCK_USER_ID = "demo-user-1";
@@ -37,6 +37,30 @@ export default function SubmitScreen() {
     }
   };
 
+  const handleAudioComplete = async (uri: string) => {
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("audio", {
+        uri,
+        type: "audio/m4a",
+        name: "recording.m4a",
+      } as any);
+      formData.append("user_id", MOCK_USER_ID);
+      formData.append("language", language);
+      formData.append("consent_public", "true");
+
+      const res = await uploadAudioGrievance(formData);
+      setResult(res);
+    } catch (e: any) {
+      setError(e?.message || "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <GrievanceForm
@@ -48,7 +72,7 @@ export default function SubmitScreen() {
         loading={loading}
         onSubmit={handleSubmit}
       />
-      <AudioRecorder />
+      <AudioRecorder onRecordingComplete={handleAudioComplete} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {result ? (
         <>

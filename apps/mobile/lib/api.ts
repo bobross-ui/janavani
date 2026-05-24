@@ -47,3 +47,16 @@ export function supportCluster(
 ): Promise<{ status: string; support_count: number }> {
   return request(`/clusters/${clusterId}/support`, { method: "POST", body: JSON.stringify(body) });
 }
+
+export async function uploadAudioGrievance(formData: FormData): Promise<GrievanceResponse> {
+  const res = await fetch(`${BASE_URL}/grievances/audio`, {
+    method: "POST",
+    body: formData,
+    // No Content-Type header so browser/RN sets multipart boundary.
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status}: ${text}`);
+  }
+  return res.json();
+}
