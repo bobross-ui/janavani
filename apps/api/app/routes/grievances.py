@@ -75,10 +75,25 @@ def submit_grievance(
     provider: AIProvider = Depends(get_request_ai_provider),
     session: Session = Depends(get_session),
 ) -> GrievanceResponse:
+    settings = get_settings()
+
     # Extract structured fields
     extraction: ExtractionResult = provider.extract_grievance(
         body.text, body.language
     )
+
+    # Translate to pivot language for cross-language clustering
+    pivot_language = settings.clustering_pivot_language
+    if (
+        extraction.language
+        and extraction.language != pivot_language
+        and extraction.normalized_text
+    ):
+        extraction.normalized_text = provider.translate_text(
+            extraction.normalized_text,
+            pivot_language,
+            source_language=extraction.language,
+        )
 
     # Check for matching cluster
     matched = find_matching_cluster(session, extraction)
