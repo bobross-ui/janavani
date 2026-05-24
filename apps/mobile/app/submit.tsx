@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-  ActivityIndicator, ScrollView, StyleSheet, Text,
-  TextInput, TouchableOpacity, View,
-} from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { submitGrievance } from "../lib/api";
 
 const MOCK_USER_ID = "demo-user-1";
@@ -11,83 +8,48 @@ export default function SubmitScreen() {
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("hi-Latn");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<null | {
-    category: string; department: string; ward: string;
-    urgency: string; action: string; clusterTitle: string | null;
-  }>(null);
+  const [result, setResult] = useState<null | { category: string; department: string; ward: string; urgency: string; action: string; clusterTitle: string | null }>(null);
   const [error, setError] = useState("");
 
   const handleSubmit = async () => {
     if (!text.trim()) return;
     setLoading(true); setError(""); setResult(null);
     try {
-      const res = await submitGrievance({
-        user_id: MOCK_USER_ID, text: text.trim(),
-        language, consent_public: true,
-      });
-      setResult({
-        category: res.extraction.category,
-        department: res.extraction.department,
-        ward: res.extraction.ward,
-        urgency: res.extraction.urgency,
-        action: res.suggested_action,
-        clusterTitle: res.matched_cluster_title,
-      });
+      const res = await submitGrievance({ user_id: MOCK_USER_ID, text: text.trim(), language, consent_public: true });
+      setResult({ category: res.extraction.category, department: res.extraction.department, ward: res.extraction.ward, urgency: res.extraction.urgency, action: res.suggested_action, clusterTitle: res.matched_cluster_title });
     } catch (e: any) {
       setError(e.message || "Failed to submit");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.label}>Phone number</Text>
       <TextInput style={styles.input} value="9876543210" editable={false} />
-      <Text style={styles.label}>Display name</Text>
-      <TextInput style={styles.input} value="Demo User" editable={false} />
       <Text style={styles.label}>Language</Text>
       <View style={styles.langRow}>
-        {[
-          { key: "hi-Latn", label: "Hinglish" },
-          { key: "hi", label: "Hindi" },
-          { key: "mr", label: "Marathi" },
-          { key: "ta", label: "Tamil" },
-        ].map((l) => (
-          <TouchableOpacity key={l.key}
-            style={[styles.langChip, language === l.key && styles.langChipActive]}
-            onPress={() => setLanguage(l.key)}
-          >
-            <Text style={[styles.langChipText, language === l.key && styles.langChipTextActive]}>
-              {l.label}
-            </Text>
+        {[{ key: "hi-Latn", label: "Hinglish" }, { key: "hi", label: "Hindi" }, { key: "mr", label: "Marathi" }, { key: "ta", label: "Tamil" }].map((l) => (
+          <TouchableOpacity key={l.key} style={[styles.langChip, language === l.key && styles.langChipActive]} onPress={() => setLanguage(l.key)}>
+            <Text style={[styles.langChipText, language === l.key && styles.langChipTextActive]}>{l.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
       <Text style={styles.label}>Your grievance</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]} multiline numberOfLines={5}
-        placeholder="Describe the issue in your own words..."
-        value={text} onChangeText={setText}
-      />
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading || !text.trim()}
-      >
+      <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={5} placeholder="Describe the issue..." value={text} onChangeText={setText} />
+      <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSubmit} disabled={loading || !text.trim()}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Submit grievance</Text>}
       </TouchableOpacity>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {result && (
         <View style={styles.resultCard}>
-          <Text style={styles.resultTitle}>Extraction Result</Text>
+          <Text style={styles.resultTitle}>Result</Text>
           <View style={styles.resultRow}><Text style={styles.resultLabel}>Category:</Text><Text style={styles.resultValue}>{result.category}</Text></View>
           <View style={styles.resultRow}><Text style={styles.resultLabel}>Department:</Text><Text style={styles.resultValue}>{result.department}</Text></View>
           <View style={styles.resultRow}><Text style={styles.resultLabel}>Ward:</Text><Text style={styles.resultValue}>{result.ward || "N/A"}</Text></View>
           <View style={styles.resultRow}><Text style={styles.resultLabel}>Urgency:</Text><Text style={styles.resultValue}>{result.urgency}</Text></View>
           {result.action === "join_cluster" && result.clusterTitle ? (
             <View style={styles.clusterMatch}>
-              <Text style={styles.clusterMatchText}>Similar issue found!{"\n"}"{result.clusterTitle}"{"\n"}Join this cluster to add your voice.</Text>
+              <Text style={styles.clusterMatchText}>Similar issue found: "{result.clusterTitle}" - Join to add your voice.</Text>
               <TouchableOpacity style={styles.joinButton}><Text style={styles.joinButtonText}>Join this cluster</Text></TouchableOpacity>
             </View>
           ) : result.action === "create_cluster" ? (

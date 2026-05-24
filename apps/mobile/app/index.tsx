@@ -3,39 +3,21 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function HomeScreen() {
   const router = useRouter();
-
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
         <Text style={styles.heroTitle}>Janavani</Text>
-        <Text style={styles.heroSubtitle}>
-          Speak your grievance. See the bigger civic signal.
-        </Text>
-        <Text style={styles.heroBody}>
-          Janavani turns spoken grievances into structured public issue clusters
-          that citizens can join and officials can act on.
-        </Text>
+        <Text style={styles.heroSubtitle}>Speak your grievance. See the bigger civic signal.</Text>
+        <Text style={styles.heroBody}>Janavani turns spoken grievances into structured public issue clusters that citizens can join and officials can act on.</Text>
       </View>
-
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => router.push("/submit")}
-        >
+        <TouchableOpacity style={styles.primaryButton} onPress={() => router.push("/submit")}>
           <Text style={styles.primaryButtonText}>Submit a grievance</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => router.push("/submit")}
-        >
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/submit")}>
           <Text style={styles.secondaryButtonText}>View nearby public issues</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => router.push("/submit")}
-        >
+        <TouchableOpacity style={styles.linkButton} onPress={() => router.push("/submit")}>
           <Text style={styles.linkButtonText}>View my issues</Text>
         </TouchableOpacity>
       </View>

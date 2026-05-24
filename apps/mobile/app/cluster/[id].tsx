@@ -2,7 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { getCluster } from "../../lib/api";
-import { ClusterDetail } from "../../lib/types";
+import type { ClusterDetail } from "../../lib/types";
 
 export default function ClusterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,7 +16,7 @@ export default function ClusterScreen() {
   }, [id]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#2b6cb0" /></View>;
-  if (error || !cluster) return <View style={styles.center}><Text style={styles.error}>{error || "Cluster not found"}</Text></View>;
+  if (error || !cluster) return <View style={styles.center}><Text style={styles.error}>{error || "Not found"}</Text></View>;
 
   return (
     <ScrollView style={styles.container}>
@@ -25,9 +25,7 @@ export default function ClusterScreen() {
         <View style={styles.metaChip}><Text style={styles.metaText}>{cluster.issue_category}</Text></View>
         <View style={styles.metaChip}><Text style={styles.metaText}>Ward {cluster.ward}</Text></View>
         <View style={[styles.metaChip, cluster.urgency_score > 0.7 && styles.urgentChip]}>
-          <Text style={[styles.metaText, cluster.urgency_score > 0.7 && styles.urgentText]}>
-            {cluster.urgency_score > 0.7 ? "High urgency" : "Active"}
-          </Text>
+          <Text style={[styles.metaText, cluster.urgency_score > 0.7 && styles.urgentText]}>{cluster.urgency_score > 0.7 ? "Urgent" : "Active"}</Text>
         </View>
       </View>
       <Text style={styles.summary}>{cluster.summary}</Text>
@@ -37,11 +35,10 @@ export default function ClusterScreen() {
       </View>
       {cluster.sample_grievances.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Representative reports (redacted)</Text>
-          {cluster.sample_grievances.map((g) => (
+          <Text style={styles.sectionTitle}>Reports (redacted)</Text>
+          {cluster.sample_grievances.map((g: any) => (
             <View key={g.id} style={styles.grievanceCard}>
               <Text style={styles.grievanceText}>{g.pii_redacted_text || g.normalized_text}</Text>
-              <Text style={styles.grievanceMeta}>{g.language} &middot; {new Date(g.created_at).toLocaleDateString()}</Text>
             </View>
           ))}
         </View>
@@ -68,6 +65,5 @@ const styles = StyleSheet.create({
   section: { marginTop: 8 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#2d3748", marginBottom: 10 },
   grievanceCard: { backgroundColor: "#f7fafc", borderRadius: 8, padding: 12, marginBottom: 8 },
-  grievanceText: { fontSize: 14, color: "#1a202c", marginBottom: 4 },
-  grievanceMeta: { fontSize: 11, color: "#a0aec0" },
+  grievanceText: { fontSize: 14, color: "#1a202c" },
 });
