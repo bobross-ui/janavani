@@ -17,8 +17,8 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/clusters")}>
           <Text style={styles.secondaryButtonText}>View nearby public issues</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.linkButton} onPress={() => router.push("/submit")}>
-          <Text style={styles.linkButtonText}>View my issues</Text>
+        <TouchableOpacity style={styles.linkButton} onPress={() => router.push("/profile")}>
+          <Text style={styles.linkButtonText}>My profile</Text>
         </TouchableOpacity>
       </View>
     </View>
