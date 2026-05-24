@@ -30,7 +30,7 @@ class UserRead(BaseModel):
 class GrievanceCreate(BaseModel):
     user_id: str
     text: str = ""
-    language: str = "hi"
+    language: str = "hi-IN"
     consent_public: bool = True
     latitude: Optional[float] = None
     longitude: Optional[float] = None

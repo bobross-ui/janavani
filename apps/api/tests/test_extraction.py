@@ -51,7 +51,7 @@ class TestExtractGrievance:
 
     def test_language_preserved(self):
         result = extract_grievance("ward 5 pani", "mr")
-        assert result.language == "mr"
+        assert result.language == "mr-IN"
         assert result.category == "water_supply"
 
     def test_ration_keyword(self):

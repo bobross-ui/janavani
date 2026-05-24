@@ -160,15 +160,6 @@ class SarvamAIProvider:
         """Expose the wrapped SarvamClient for introspection in tests."""
         return self._client
 
-    @staticmethod
-    def _to_sarvam_language(lang: str) -> str:
-        """Normalize a language code to Sarvam format (e.g. 'hi' → 'hi-IN')."""
-        if not lang:
-            return "hi-IN"
-        if "-" in lang:
-            return lang
-        return lang + "-IN"
-
     # ── PII guards (post‑generation) ────────────────────────────
 
     _PHONE_RE = re.compile(r"\b\d{10}\b")
@@ -446,10 +437,10 @@ class SarvamAIProvider:
         payload: Dict = {
             "model": settings.sarvam_translate_model,
             "input": text,
-            "target_language_code": self._to_sarvam_language(target_language),
+            "target_language_code": target_language,
         }
         if source_language is not None:
-            payload["source_language_code"] = self._to_sarvam_language(source_language)
+            payload["source_language_code"] = source_language
 
         t0 = time.monotonic()
         response = self._client.post_json("/translate", payload)

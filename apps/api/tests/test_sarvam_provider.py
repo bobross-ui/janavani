@@ -382,7 +382,7 @@ class TestTranslateText:
         assert path == "/translate"
         assert payload["model"] == "mayura:v1"
         assert payload["input"] == "नमस्ते"
-        assert payload["target_language_code"] == "en-IN"
+        assert payload["target_language_code"] == "en"
 
     def test_translate_text_includes_source_when_provided(self):
         """Verify source_language_code in payload when provided."""
@@ -393,7 +393,7 @@ class TestTranslateText:
 
         fake = provider.client
         _, payload = fake.calls[0]
-        assert payload["source_language_code"] == "hi-IN"
+        assert payload["source_language_code"] == "hi"
 
     def test_translate_text_auto_detects_source_when_omitted(self):
         """When source_language not provided, it is absent from payload."""

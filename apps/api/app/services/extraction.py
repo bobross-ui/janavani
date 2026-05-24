@@ -107,10 +107,20 @@ def _normalize(text: str) -> str:
 # ── Main extraction ───────────────────────────────────────────────────
 
 
+def _normalize_language(lang: str) -> str:
+    """Normalize a language code to Sarvam-compatible format (e.g. 'hi' → 'hi-IN')."""
+    if not lang:
+        return "hi-IN"
+    if "-" in lang:  # already has region suffix like 'hi-IN' or 'hi-Latn'
+        return lang
+    return lang + "-IN"
+
+
 def extract_grievance(
-    text: str, language: str = "hi"
+    text: str, language: str = "hi-IN"
 ) -> ExtractionResult:
     """Extract structured fields from grievance text using keyword rules."""
+    language = _normalize_language(language)
     normalized = _normalize(text)
     lower = normalized.lower()
 
