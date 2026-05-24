@@ -1,9 +1,15 @@
-from typing import Optional, Protocol
+import logging
+import time
+from typing import Callable, Optional, Protocol
 
 from app.config import get_settings
 from app.schemas import ExtractionResult
 from app.services.extraction import extract_grievance
 from app.services.redaction import redact_all
+from app.services.sarvam_client import SarvamError
+
+
+logger = logging.getLogger(__name__)
 
 
 # ── Provider protocol ─────────────────────────────────────────────────
@@ -99,6 +105,136 @@ class SarvamAIProvider:
         raise NotImplementedError("Sarvam draft generation not yet implemented")
 
 
+# ── Fallback provider and circuit breaker ─────────────────────────────
+
+
+class CircuitBreaker:
+    """Small in-memory circuit breaker for Sarvam fallback decisions."""
+
+    def __init__(
+        self,
+        failure_threshold: int = 3,
+        recovery_seconds: float = 30.0,
+        failure_window_seconds: float = 60.0,
+        time_func: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.failure_threshold = max(1, failure_threshold)
+        self.recovery_seconds = recovery_seconds
+        self.failure_window_seconds = failure_window_seconds
+        self.time_func = time_func
+        self.consecutive_failures = 0
+        self.first_failure_at: Optional[float] = None
+        self.opened_at: Optional[float] = None
+
+    def allow_request(self) -> bool:
+        if self.opened_at is None:
+            return True
+        return (self.time_func() - self.opened_at) >= self.recovery_seconds
+
+    def record_success(self) -> None:
+        self.consecutive_failures = 0
+        self.first_failure_at = None
+        self.opened_at = None
+
+    def record_failure(self) -> None:
+        now = self.time_func()
+        if self.opened_at is not None:
+            self.consecutive_failures = self.failure_threshold
+            self.first_failure_at = now
+            self.opened_at = now
+            return
+
+        if (
+            self.first_failure_at is None
+            or (now - self.first_failure_at) > self.failure_window_seconds
+        ):
+            self.first_failure_at = now
+            self.consecutive_failures = 0
+
+        self.consecutive_failures += 1
+        if self.consecutive_failures >= self.failure_threshold:
+            self.opened_at = now
+
+
+_sarvam_circuit_breaker = CircuitBreaker()
+
+
+def _reset_sarvam_circuit_breaker_for_tests() -> None:
+    _sarvam_circuit_breaker.record_success()
+
+
+class FallbackAIProvider:
+    """AI provider wrapper that falls back to a local provider on Sarvam errors."""
+
+    def __init__(
+        self,
+        primary: AIProvider,
+        fallback: AIProvider,
+        circuit_breaker: Optional[CircuitBreaker] = None,
+    ) -> None:
+        self.primary = primary
+        self.fallback = fallback
+        self.circuit_breaker = circuit_breaker or CircuitBreaker()
+
+    def transcribe_audio(self, audio_bytes: bytes) -> str:
+        return self._call_with_fallback(
+            "transcribe_audio",
+            self.primary.transcribe_audio,
+            self.fallback.transcribe_audio,
+            audio_bytes,
+        )
+
+    def translate_text(self, text: str, target_language: str) -> str:
+        return self._call_with_fallback(
+            "translate_text",
+            self.primary.translate_text,
+            self.fallback.translate_text,
+            text,
+            target_language,
+        )
+
+    def extract_grievance(
+        self, text: str, language: str = "hi"
+    ) -> ExtractionResult:
+        return self._call_with_fallback(
+            "extract_grievance",
+            self.primary.extract_grievance,
+            self.fallback.extract_grievance,
+            text,
+            language,
+        )
+
+    def generate_draft(self, cluster_context: dict) -> str:
+        return self._call_with_fallback(
+            "generate_draft",
+            self.primary.generate_draft,
+            self.fallback.generate_draft,
+            cluster_context,
+        )
+
+    def _call_with_fallback(self, method_name: str, primary_call, fallback_call, *args):
+        if not self.circuit_breaker.allow_request():
+            logger.warning(
+                "Sarvam circuit open for %s; falling back to local AI provider",
+                method_name,
+            )
+            return fallback_call(*args)
+
+        try:
+            result = primary_call(*args)
+        except SarvamError as exc:
+            self.circuit_breaker.record_failure()
+            logger.warning(
+                "Sarvam provider failed for %s (%s); falling back to local AI provider",
+                method_name,
+                exc.__class__.__name__,
+            )
+            return fallback_call(*args)
+
+        self.circuit_breaker.record_success()
+        return result
+
+
 # ── Factory ───────────────────────────────────────────────────────────
 
 
@@ -106,5 +242,19 @@ def get_ai_provider() -> AIProvider:
     """Return the configured AI provider based on settings."""
     settings = get_settings()
     if settings.ai_provider == "sarvam":
+        if settings.sarvam_fallback_on_error:
+            try:
+                return FallbackAIProvider(
+                    SarvamAIProvider(),
+                    LocalAIProvider(),
+                    circuit_breaker=_sarvam_circuit_breaker,
+                )
+            except NotImplementedError as exc:
+                logger.warning(
+                    "Sarvam provider unavailable during initialization (%s); "
+                    "falling back to local AI provider",
+                    exc.__class__.__name__,
+                )
+                return LocalAIProvider()
         return SarvamAIProvider()
     return LocalAIProvider()

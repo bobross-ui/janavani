@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.db import get_session
 from app.main import app
-from app.services.ai_provider import LocalAIProvider, SarvamAIProvider
+from app.services.ai_provider import FallbackAIProvider, LocalAIProvider, SarvamAIProvider
 
 
 def isolated_settings(**overrides):
@@ -48,7 +48,10 @@ def test_provider_selection_reads_current_settings_without_route_reimport(monkey
         ai_provider="sarvam",
         sarvam_api_key="test-key",
     )
-    assert isinstance(get_request_ai_provider(), SarvamAIProvider)
+    provider = get_request_ai_provider()
+    assert isinstance(provider, FallbackAIProvider)
+    assert isinstance(provider.primary, SarvamAIProvider)
+    assert isinstance(provider.fallback, LocalAIProvider)
 
 
 def test_provider_override_header_is_ignored_when_not_allowed(monkeypatch):
