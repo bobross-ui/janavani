@@ -471,9 +471,12 @@ class SarvamAIProvider:
         return translated
 
     def extract_grievance(
-        self, text: str, language: str = "hi"
+        self, text: str, language: str = "hi-IN"
     ) -> ExtractionResult:
-        raise NotImplementedError("Sarvam extraction not yet implemented")
+        # Sarvam has no extraction endpoint — keyword extraction is always local.
+        # Delegate to the same logic LocalAIProvider uses so AI_PROVIDER=sarvam works end-to-end.
+        local = LocalAIProvider()
+        return local.extract_grievance(text, language)
 
     # ── synthesize_speech ───────────────────────────────────────
 

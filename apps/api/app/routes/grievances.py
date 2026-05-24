@@ -29,10 +29,7 @@ def _provider_from_name(provider_name: str) -> AIProvider:
     if normalized == "local":
         return LocalAIProvider()
     if normalized == "sarvam":
-        raise HTTPException(
-            status_code=503,
-            detail="Sarvam provider override is not available yet",
-        )
+        return get_ai_provider()  # returns FallbackAIProvider(Sarvam, Local) when key is set
     raise HTTPException(
         status_code=400,
         detail=f"Unsupported AI provider override: {provider_name}",

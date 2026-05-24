@@ -108,56 +108,37 @@ def test_provider_override_rejects_unknown_provider_when_allowed(monkeypatch):
 
 
 def test_provider_override_rejects_unavailable_sarvam_when_allowed(monkeypatch):
-    patch_settings(
-        monkeypatch,
-        ai_provider="local",
-        allow_provider_override=True,
-        sarvam_api_key="test-key",
-    )
+    # With extraction now delegating to local, sarvam override works; test that
+    # unknown providers still get 400.
+    patch_settings(monkeypatch, allow_provider_override=True)
 
     from app.routes.grievances import get_request_ai_provider
 
-    with pytest.raises(HTTPException, match="Sarvam provider override is not available yet") as exc:
-        get_request_ai_provider(x_ai_provider="sarvam")
-    assert exc.value.status_code == 503
+    with pytest.raises(HTTPException, match="Unsupported AI provider override") as exc:
+        get_request_ai_provider(x_ai_provider="bhasha-test")
+    assert exc.value.status_code == 400
 
 
-def test_client_header_alias_returns_controlled_error_for_unavailable_sarvam(monkeypatch):
+def test_client_header_alias_sarvam_override_now_works(monkeypatch):
     patch_settings(
         monkeypatch,
         ai_provider="local",
         allow_provider_override=True,
-        sarvam_api_key="test-key",
+        sarvam_api_key=None,  # no key → falls back to local in get_ai_provider()
     )
 
-    session_requested = False
-
-    def fail_if_session_requested():
-        nonlocal session_requested
-        session_requested = True
-        raise AssertionError("DB session should not be requested for unavailable provider override")
-        yield  # pragma: no cover
-
-    app.dependency_overrides[get_session] = fail_if_session_requested
-    try:
-        client = TestClient(app)
-        response = client.post(
-            "/grievances",
-            headers={"X-AI-Provider": "sarvam"},
-            json={
-                "user_id": "test-user",
-                "text": "ward 8 mein paani nahi aa raha",
-                "language": "hi-Latn",
-            },
-        )
-    finally:
-        app.dependency_overrides.clear()
-
-    assert response.status_code == 503
-    assert response.json() == {
-        "detail": "Sarvam provider override is not available yet"
-    }
-    assert session_requested is False
+    client = TestClient(app)
+    response = client.post(
+        "/grievances",
+        headers={"X-AI-Provider": "sarvam"},
+        json={
+            "user_id": "test-user",
+            "text": "ward 8 mein paani nahi aa raha",
+            "language": "hi-Latn",
+        },
+    )
+    # With no key, get_ai_provider() gracefully falls back to local; grievance should submit OK
+    assert response.status_code == 200
 
 
 def test_client_unsupported_override_ignored_when_override_disabled(monkeypatch):
