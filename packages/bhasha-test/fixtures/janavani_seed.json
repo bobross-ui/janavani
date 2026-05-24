@@ -1,0 +1,80 @@
+[
+  {
+    "id": "hi-water-ward-8-phone",
+    "text": "वार्ड 8 में तीन दिन से पानी नहीं आ रहा है, मेरा नंबर 9876543210 है",
+    "language": "hi",
+    "expected": {
+      "category": "water_supply",
+      "department": "water_department",
+      "urgency": "high",
+      "ward": "8"
+    },
+    "sensitive": ["9876543210"],
+    "expected_redactions": ["[PHONE_REDACTED]"]
+  },
+  {
+    "id": "hinglish-sanitation-ward-11-email",
+    "text": "ward 11 me kachra nahi uth raha, contact me at citizen@example.com",
+    "language": "hi",
+    "expected": {
+      "category": "sanitation",
+      "department": "sanitation_department",
+      "urgency": "medium",
+      "ward": "11"
+    },
+    "sensitive": ["citizen@example.com"],
+    "expected_redactions": ["[EMAIL_REDACTED]"]
+  },
+  {
+    "id": "hinglish-road-ward-4",
+    "text": "ward 4 main road par bada gaddha hai abhi accident ka danger hai",
+    "language": "hi",
+    "expected": {
+      "category": "roads",
+      "department": "public_works",
+      "urgency": "high",
+      "ward": "4"
+    },
+    "sensitive": [],
+    "expected_redactions": []
+  },
+  {
+    "id": "hi-electricity-ward-2-aadhaar",
+    "text": "ward 2 me kal se bijli nahi hai, aadhaar 123456789012",
+    "language": "hi",
+    "expected": {
+      "category": "electricity",
+      "department": "electricity_department",
+      "urgency": "high",
+      "ward": "2"
+    },
+    "sensitive": ["123456789012"],
+    "expected_redactions": ["[ID_REDACTED]"]
+  },
+  {
+    "id": "hinglish-ration-ward-5",
+    "text": "ward 5 ration shop me ration nahi mil raha",
+    "language": "hi",
+    "expected": {
+      "category": "ration",
+      "department": "food_department",
+      "urgency": "medium",
+      "ward": "5"
+    },
+    "sensitive": [],
+    "expected_redactions": []
+  },
+  {
+    "id": "hinglish-health-ward-7",
+    "text": "ward 7 hospital me doctor aur davai available nahi hai",
+    "language": "hi",
+    "expected": {
+      "category": "health",
+      "department": "health_department",
+      "urgency": "medium",
+      "ward": "7"
+    },
+    "sensitive": [],
+    "expected_redactions": []
+  }
+]
