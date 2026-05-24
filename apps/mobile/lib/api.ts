@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import {
   Grievance,
   GrievanceResponse,
@@ -6,7 +7,12 @@ import {
   ComplaintDraft,
 } from "./types";
 
-const BASE_URL = "http://10.0.2.2:8000"; // Android emulator → host machine
+// Android emulator uses 10.0.2.2; iOS sim uses localhost; physical devices need host IP
+const BASE_URL = Platform.select({
+  android: "http://10.0.2.2:8000",
+  ios: "http://localhost:8000",
+  default: "http://localhost:8000",
+});
 
 async function request<T>(
   path: string,
