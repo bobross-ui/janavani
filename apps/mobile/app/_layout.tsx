@@ -14,6 +14,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" options={{ title: "Janavani" }} />
         <Stack.Screen name="submit" options={{ title: "Submit Grievance" }} />
+        <Stack.Screen name="clusters" options={{ title: "Public Issues" }} />
         <Stack.Screen name="cluster/[id]" options={{ title: "Issue Cluster" }} />
       </Stack>
     </>

@@ -14,7 +14,7 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.push("/submit")}>
           <Text style={styles.primaryButtonText}>Submit a grievance</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/submit")}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/clusters")}>
           <Text style={styles.secondaryButtonText}>View nearby public issues</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkButton} onPress={() => router.push("/submit")}>
