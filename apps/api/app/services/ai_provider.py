@@ -52,7 +52,7 @@ class AIProvider(Protocol):
         ...
 
     def synthesize_speech(
-        self, text: str, language: str = "hi-IN", speaker: str = "default"
+        self, text: str, language: str = "hi-IN", speaker: str = "aditya"
     ) -> bytes:
         """Convert text to speech audio bytes."""
         ...
@@ -121,7 +121,7 @@ class LocalAIProvider:
         )
 
     def synthesize_speech(
-        self, text: str, language: str = "hi-IN", speaker: str = "default"
+        self, text: str, language: str = "hi-IN", speaker: str = "aditya"
     ) -> bytes:
         return b""
 
@@ -159,6 +159,15 @@ class SarvamAIProvider:
     def client(self) -> SarvamClient:
         """Expose the wrapped SarvamClient for introspection in tests."""
         return self._client
+
+    @staticmethod
+    def _to_sarvam_language(lang: str) -> str:
+        """Normalize a language code to Sarvam format (e.g. 'hi' → 'hi-IN')."""
+        if not lang:
+            return "hi-IN"
+        if "-" in lang:
+            return lang
+        return lang + "-IN"
 
     # ── PII guards (post‑generation) ────────────────────────────
 
@@ -256,6 +265,7 @@ class SarvamAIProvider:
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.2,
+            "reasoning_effort": None,
         }
 
         response = self._client.post_json("/v1/chat/completions", payload)
@@ -436,10 +446,10 @@ class SarvamAIProvider:
         payload: Dict = {
             "model": settings.sarvam_translate_model,
             "input": text,
-            "target_language_code": target_language,
+            "target_language_code": self._to_sarvam_language(target_language),
         }
         if source_language is not None:
-            payload["source_language_code"] = source_language
+            payload["source_language_code"] = self._to_sarvam_language(source_language)
 
         t0 = time.monotonic()
         response = self._client.post_json("/translate", payload)
@@ -477,7 +487,7 @@ class SarvamAIProvider:
     # ── synthesize_speech ───────────────────────────────────────
 
     def synthesize_speech(
-        self, text: str, language: str = "hi-IN", speaker: str = "default"
+        self, text: str, language: str = "hi-IN", speaker: str = "aditya"
     ) -> bytes:
         """Convert text to speech via Sarvam TTS.
 
@@ -666,7 +676,7 @@ class FallbackAIProvider:
         )
 
     def synthesize_speech(
-        self, text: str, language: str = "hi-IN", speaker: str = "default"
+        self, text: str, language: str = "hi-IN", speaker: str = "aditya"
     ) -> bytes:
         return self._call_with_fallback(
             "synthesize_speech",

@@ -382,7 +382,7 @@ class TestTranslateText:
         assert path == "/translate"
         assert payload["model"] == "mayura:v1"
         assert payload["input"] == "नमस्ते"
-        assert payload["target_language_code"] == "en"
+        assert payload["target_language_code"] == "en-IN"
 
     def test_translate_text_includes_source_when_provided(self):
         """Verify source_language_code in payload when provided."""
@@ -393,7 +393,7 @@ class TestTranslateText:
 
         fake = provider.client
         _, payload = fake.calls[0]
-        assert payload["source_language_code"] == "hi"
+        assert payload["source_language_code"] == "hi-IN"
 
     def test_translate_text_auto_detects_source_when_omitted(self):
         """When source_language not provided, it is absent from payload."""
@@ -905,7 +905,7 @@ class TestSynthesizeSpeech:
     # ── defaults ────────────────────────────────────────────────
 
     def test_synthesize_speech_defaults_language_and_speaker(self):
-        """Default language='hi-IN' and speaker='default' when not provided."""
+        """Default language='hi-IN' and speaker='aditya' when not provided."""
         provider = self._make_provider(
             mock_response=self._tts_response(),
         )
@@ -915,7 +915,7 @@ class TestSynthesizeSpeech:
         fake = provider.client
         _, payload = fake.calls[0]
         assert payload["target_language_code"] == "hi-IN"
-        assert payload["speaker"] == "default"
+        assert payload["speaker"] == "aditya"
 
     # ── privacy: no logging of text ──────────────────────────────
 

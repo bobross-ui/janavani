@@ -59,7 +59,7 @@ class _MockTTSProvider:
         self,
         text: str,
         language: str = "hi-IN",
-        speaker: str = "default",
+        speaker: str = "aditya",
     ) -> bytes:
         self.synthesize_speech_called = True
         self.synthesize_text = text
@@ -112,7 +112,7 @@ class TestTTSEndpoint:
             json={
                 "text": "namaste duniya",
                 "language": "hi-IN",
-                "speaker": "default",
+                "speaker": "aditya",
             },
         )
 
@@ -137,7 +137,7 @@ class TestTTSEndpoint:
             json={
                 "text": long_text,
                 "language": "hi-IN",
-                "speaker": "default",
+                "speaker": "aditya",
             },
         )
 
@@ -177,7 +177,7 @@ class TestTTSEndpoint:
     # ── test 4: defaults when optional fields omitted ──────────────
 
     def test_tts_uses_defaults_for_optional_fields(self):
-        """Omitted language and speaker → defaults of 'hi-IN' and 'default'."""
+        """Omitted language and speaker → defaults of 'hi-IN' and 'aditya'."""
         mock_provider = _MockTTSProvider()
         _install_tts_mock(mock_provider)
 
@@ -194,7 +194,7 @@ class TestTTSEndpoint:
 
         # Defaults should be used when fields omitted
         assert mock_provider.synthesize_language == "hi-IN"
-        assert mock_provider.synthesize_speaker == "default"
+        assert mock_provider.synthesize_speaker == "aditya"
 
     # ── test 5: SarvamError → 502 with detail ──────────────────────
 
@@ -208,7 +208,7 @@ class TestTTSEndpoint:
             json={
                 "text": "hello",
                 "language": "hi-IN",
-                "speaker": "default",
+                "speaker": "aditya",
             },
         )
 

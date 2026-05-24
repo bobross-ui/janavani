@@ -178,7 +178,7 @@ class EvalRunRead(BaseModel):
 class TTSRequest(BaseModel):
     text: str
     language: str = "hi-IN"
-    speaker: str = "default"
+    speaker: str = "aditya"
 
 
 # ── Transcription ────────────────────────────────────────────────────

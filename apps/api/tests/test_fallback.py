@@ -56,7 +56,7 @@ class FakePrimaryProvider:
             raise self.failures.pop(0)
         return "primary draft"
 
-    def synthesize_speech(self, text, language="hi-IN", speaker="default"):
+    def synthesize_speech(self, text, language="hi-IN", speaker="aditya"):
         self.calls.append(("synthesize_speech", text, language, speaker))
         if self.failures:
             raise self.failures.pop(0)
@@ -97,7 +97,7 @@ class FakeFallbackProvider:
         self.calls.append(("generate_draft", cluster_context))
         return "fallback draft"
 
-    def synthesize_speech(self, text, language="hi-IN", speaker="default"):
+    def synthesize_speech(self, text, language="hi-IN", speaker="aditya"):
         self.calls.append(("synthesize_speech", text, language, speaker))
         return b"fallback tts audio"
 
