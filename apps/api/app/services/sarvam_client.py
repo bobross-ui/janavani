@@ -6,6 +6,8 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from app.services import usage_log
+
 
 logger = logging.getLogger(__name__)
 
@@ -179,15 +181,25 @@ class SarvamClient:
         byte_size: int,
     ) -> None:
         latency_ms = int((time.monotonic() - started) * 1000)
+        endpoint = self._log_endpoint(path)
         logger.info(
             "sarvam_call endpoint=%s model=%s language=%s latency_ms=%s status=%s retry_count=%s byte_size=%s",
-            self._log_endpoint(path),
+            endpoint,
             model or "",
             language or "",
             latency_ms,
             status,
             retry_count,
             byte_size,
+        )
+        usage_log.log_call(
+            endpoint=endpoint,
+            model=model or "",
+            language=language or "",
+            input_size_bytes=byte_size,
+            latency_ms=latency_ms,
+            status=status,
+            retry_count=retry_count,
         )
 
     def _sleep_before_retry(self, retry_count: int) -> None:
