@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "expo": "~52.0.0",
+    "expo-asset": "^56.0.14",
     "expo-constants": "~17.0.0",
     "expo-linking": "~7.0.0",
     "expo-router": "~4.0.0",
