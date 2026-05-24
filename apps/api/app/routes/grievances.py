@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlmodel import Session
 
 from app.db import get_session
@@ -9,12 +11,39 @@ from app.schemas import (
     GrievanceRead,
     GrievanceResponse,
 )
-from app.services.ai_provider import get_ai_provider
+from app.config import get_settings
+from app.services.ai_provider import (
+    AIProvider,
+    LocalAIProvider,
+    get_ai_provider,
+)
 from app.services.clustering import find_matching_cluster
 
 router = APIRouter(prefix="/grievances", tags=["grievances"])
 
-provider = get_ai_provider()
+
+def _provider_from_name(provider_name: str) -> AIProvider:
+    normalized = provider_name.strip().lower()
+    if normalized == "local":
+        return LocalAIProvider()
+    if normalized == "sarvam":
+        raise HTTPException(
+            status_code=503,
+            detail="Sarvam provider override is not available yet",
+        )
+    raise HTTPException(
+        status_code=400,
+        detail=f"Unsupported AI provider override: {provider_name}",
+    )
+
+
+def get_request_ai_provider(
+    x_ai_provider: Optional[str] = Header(default=None, alias="X-AI-Provider")
+) -> AIProvider:
+    settings = get_settings()
+    if settings.allow_provider_override and isinstance(x_ai_provider, str) and x_ai_provider:
+        return _provider_from_name(x_ai_provider)
+    return get_ai_provider()
 
 
 def _grievance_to_read(g: Grievance) -> GrievanceRead:
@@ -42,7 +71,9 @@ def _grievance_to_read(g: Grievance) -> GrievanceRead:
 
 @router.post("", response_model=GrievanceResponse)
 def submit_grievance(
-    body: GrievanceCreate, session: Session = Depends(get_session)
+    body: GrievanceCreate,
+    provider: AIProvider = Depends(get_request_ai_provider),
+    session: Session = Depends(get_session),
 ) -> GrievanceResponse:
     # Extract structured fields
     extraction: ExtractionResult = provider.extract_grievance(
