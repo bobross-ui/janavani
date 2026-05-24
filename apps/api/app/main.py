@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import create_db_and_tables
 from app.routes.admin import router as admin_router
@@ -16,6 +17,18 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Janavani API", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(health_router)
 app.include_router(grievances_router)
 app.include_router(clusters_router)

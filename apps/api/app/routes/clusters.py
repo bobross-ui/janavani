@@ -9,7 +9,7 @@ from app.schemas import (
     ClusterDetail,
     ClusterRead,
     ClusterSupportCreate,
-    GrievanceRead,
+    RedactedGrievanceSample,
 )
 
 router = APIRouter(prefix="/clusters", tags=["clusters"])
@@ -72,24 +72,16 @@ def get_cluster(
         .limit(10)
     ).all()
     sample = [
-        GrievanceRead(
+        RedactedGrievanceSample(
             id=g.id,
-            user_id=g.user_id,
-            raw_text="[redacted]",
-            transcript_text=g.transcript_text,
-            normalized_text=g.normalized_text,
             language=g.language,
             issue_category=g.issue_category,
             department=g.department,
             urgency=g.urgency,
             ward=g.ward,
             landmark=g.landmark,
-            latitude=g.latitude,
-            longitude=g.longitude,
-            pii_redacted_text=g.pii_redacted_text,
-            cluster_id=g.cluster_id,
+            pii_redacted_text=g.pii_redacted_text or "[redacted sample unavailable]",
             status=g.status,
-            consent_public=g.consent_public,
             created_at=g.created_at,
         )
         for g in grievances

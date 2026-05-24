@@ -25,6 +25,14 @@ Thumbs.db
 
 # Node
 node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
 
 # Expo
 .expo/

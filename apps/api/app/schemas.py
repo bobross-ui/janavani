@@ -99,8 +99,21 @@ class ClusterRead(BaseModel):
     updated_at: datetime
 
 
+class RedactedGrievanceSample(BaseModel):
+    id: str
+    language: str
+    issue_category: str
+    department: str
+    urgency: str
+    ward: str
+    landmark: str
+    pii_redacted_text: str
+    status: str
+    created_at: datetime
+
+
 class ClusterDetail(ClusterRead):
-    sample_grievances: list[GrievanceRead] = []
+    sample_grievances: list[RedactedGrievanceSample] = []
 
 
 class ClusterSupportCreate(BaseModel):
