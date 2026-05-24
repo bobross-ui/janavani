@@ -16,11 +16,16 @@ class FakePrimaryProvider:
         self.failures = list(failures or [])
         self.calls = []
 
-    def transcribe_audio(self, audio_bytes):
-        self.calls.append(("transcribe_audio", audio_bytes))
+    def transcribe_audio(self, audio_bytes, language_code="hi-IN", model=None):
+        self.calls.append(("transcribe_audio", audio_bytes, language_code, model))
         if self.failures:
             raise self.failures.pop(0)
-        return "primary transcript"
+        from app.schemas import TranscriptionResult
+        return TranscriptionResult(
+            transcript="primary transcript",
+            detected_language="hi-IN",
+            confidence=0.9,
+        )
 
     def translate_text(self, text, target_language, source_language=None):
         self.calls.append(("translate_text", text, target_language, source_language))
@@ -45,9 +50,14 @@ class FakeFallbackProvider:
     def __init__(self):
         self.calls = []
 
-    def transcribe_audio(self, audio_bytes):
-        self.calls.append(("transcribe_audio", audio_bytes))
-        return "fallback transcript"
+    def transcribe_audio(self, audio_bytes, language_code="hi-IN", model=None):
+        self.calls.append(("transcribe_audio", audio_bytes, language_code, model))
+        from app.schemas import TranscriptionResult
+        return TranscriptionResult(
+            transcript="fallback transcript",
+            detected_language="hi-IN",
+            confidence=0.0,
+        )
 
     def translate_text(self, text, target_language, source_language=None):
         self.calls.append(("translate_text", text, target_language, source_language))
@@ -135,17 +145,17 @@ def test_circuit_half_opens_after_timeout_and_resets_on_success():
     fallback = FakeFallbackProvider()
     provider = FallbackAIProvider(primary, fallback, circuit_breaker=breaker)
 
-    assert provider.transcribe_audio(b"first") == "fallback transcript"
+    assert provider.transcribe_audio(b"first").transcript == "fallback transcript"
     assert len(primary.calls) == 1
 
-    assert provider.transcribe_audio(b"before-timeout") == "fallback transcript"
+    assert provider.transcribe_audio(b"before-timeout").transcript == "fallback transcript"
     assert len(primary.calls) == 1
 
     now[0] = 131.0
-    assert provider.transcribe_audio(b"after-timeout") == "primary transcript"
+    assert provider.transcribe_audio(b"after-timeout").transcript == "primary transcript"
 
-    assert primary.calls[-1] == ("transcribe_audio", b"after-timeout")
-    assert provider.transcribe_audio(b"closed-again") == "primary transcript"
+    assert primary.calls[-1] == ("transcribe_audio", b"after-timeout", "hi-IN", None)
+    assert provider.transcribe_audio(b"closed-again").transcript == "primary transcript"
     assert len(primary.calls) == 3
 
 

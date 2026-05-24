@@ -24,6 +24,10 @@ class FakeSarvamClient:
         self.calls.append((path, payload))
         return self._response
 
+    def post_audio_bytes(self, path: str, audio_bytes: bytes, model: str, language: str) -> dict:
+        self.calls.append((path, audio_bytes, model, language))
+        return self._response
+
     def close(self) -> None:
         pass
 
@@ -476,3 +480,223 @@ class TestTranslateText:
 
         assert "नमस्ते" not in caplog.text
         assert "Hello" not in caplog.text
+
+
+# ── STT response helper ──────────────────────────────────────────────
+
+
+def _stt_response(
+    transcript: str = "ward 8 mein paani nahi aa raha",
+    language_code: str = "hi-IN",
+    confidence: float = 0.95,
+) -> Dict[str, Any]:
+    """Return a Sarvam speech-to-text response shape."""
+    return {
+        "transcript": transcript,
+        "language_code": language_code,
+        "confidence": confidence,
+    }
+
+
+# ── TranscribeAudio tests ────────────────────────────────────────────
+
+
+class TestTranscribeAudio:
+    """All transcribe_audio tests use FakeSarvamClient — zero HTTP."""
+
+    # ── helpers ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _make_provider(
+        mock_response: Optional[Dict[str, Any]] = None,
+        settings_overrides: Optional[Dict[str, Any]] = None,
+    ) -> SarvamAIProvider:
+        """Build a SarvamAIProvider wired to a FakeSarvamClient.
+
+        Keeps the monkeypatch active so get_settings() returns the
+        test settings for the lifetime of the provider.
+        """
+        import app.services.ai_provider as mod
+
+        overrides = dict(settings_overrides or {})
+        overrides.setdefault("sarvam_api_key", "fake-key-for-tests")
+        overrides.setdefault("sarvam_stt_model", "saarika:v2.5")
+        overrides.setdefault("sarvam_api_base", "https://api.sarvam.ai")
+        overrides.setdefault("sarvam_timeout_seconds", 30.0)
+        overrides.setdefault("sarvam_max_retries", 0)
+
+        test_settings = Settings(_env_file=None, **overrides)
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(mod, "get_settings", lambda: test_settings)
+
+        fake_client = FakeSarvamClient(response=mock_response)
+        provider = SarvamAIProvider(client=fake_client)
+        # attach monkeypatch to provider so it stays alive
+        provider._test_monkeypatch = monkeypatch  # type: ignore[attr-defined]
+        return provider
+
+    # ── happy path ──────────────────────────────────────────────
+
+    def test_transcribe_audio_returns_transcription_result(self):
+        """Happy path: returns TranscriptionResult with correct fields."""
+        provider = self._make_provider(
+            mock_response=_stt_response(
+                transcript="ward 8 mein paani nahi aa raha",
+                language_code="hi-IN",
+                confidence=0.95,
+            ),
+        )
+        result = provider.transcribe_audio(b"fake wav audio")
+
+        assert result.transcript == "ward 8 mein paani nahi aa raha"
+        assert result.detected_language == "hi-IN"
+        assert result.confidence == 0.95
+        assert isinstance(result.confidence, float)
+
+    def test_transcribe_audio_calls_stt_endpoint_with_correct_params(self):
+        """Verify /speech-to-text path, model, language, audio_bytes."""
+        provider = self._make_provider(
+            mock_response=_stt_response(),
+        )
+        audio = b"dummy audio content"
+        provider.transcribe_audio(audio, language_code="hi-IN")
+
+        fake = provider.client
+        assert len(fake.calls) == 1
+        call = fake.calls[0]
+        # call format: (path, audio_bytes, model, language)
+        assert call[0] == "/speech-to-text"
+        assert call[1] == audio
+        assert call[2] == "saarika:v2.5"
+        assert call[3] == "hi-IN"
+
+    # ── defaults ────────────────────────────────────────────────
+
+    def test_transcribe_audio_uses_default_language(self):
+        """Default language_code is 'hi-IN' when not provided."""
+        provider = self._make_provider(
+            mock_response=_stt_response(),
+        )
+        provider.transcribe_audio(b"audio")
+
+        fake = provider.client
+        _, _, model, language = fake.calls[0]
+        assert language == "hi-IN"
+
+    def test_transcribe_audio_uses_configured_model(self):
+        """Uses sarvam_stt_model from settings when model is not provided."""
+        provider = self._make_provider(
+            mock_response=_stt_response(),
+            settings_overrides={"sarvam_stt_model": "saaras:v2.5"},
+        )
+        provider.transcribe_audio(b"audio")
+
+        fake = provider.client
+        _, _, model, _ = fake.calls[0]
+        assert model == "saaras:v2.5"
+
+    def test_transcribe_audio_uses_explicit_model_over_settings(self):
+        """Explicit model parameter overrides settings."""
+        provider = self._make_provider(
+            mock_response=_stt_response(),
+            settings_overrides={"sarvam_stt_model": "saarika:v2.5"},
+        )
+        provider.transcribe_audio(b"audio", model="custom-stt-model")
+
+        fake = provider.client
+        _, _, model, _ = fake.calls[0]
+        assert model == "custom-stt-model"
+
+    # ── size validation ─────────────────────────────────────────
+
+    def test_transcribe_audio_rejects_audio_over_10mb(self):
+        """Audio > 10 MB raises SarvamError before any API call."""
+        provider = self._make_provider(
+            mock_response=_stt_response(),
+        )
+        large_audio = b"x" * (10 * 1024 * 1024 + 1)  # 10 MB + 1 byte
+
+        with pytest.raises(SarvamError, match="10"):
+            provider.transcribe_audio(large_audio)
+
+        # Must not have made any API call
+        fake = provider.client
+        assert len(fake.calls) == 0
+
+    def test_transcribe_audio_accepts_audio_at_10mb(self):
+        """Audio exactly at 10 MB is accepted."""
+        provider = self._make_provider(
+            mock_response=_stt_response(),
+        )
+        exact_audio = b"x" * (10 * 1024 * 1024)  # exactly 10 MB
+
+        result = provider.transcribe_audio(exact_audio)
+        assert result.transcript == "ward 8 mein paani nahi aa raha"
+        assert len(provider.client.calls) == 1
+
+    # ── response extraction ─────────────────────────────────────
+
+    def test_transcribe_audio_missing_transcript_key(self):
+        """Response without 'transcript' key → SarvamError."""
+        provider = self._make_provider(
+            mock_response={"language_code": "hi-IN", "confidence": 0.9},
+        )
+        with pytest.raises(SarvamError, match="transcript"):
+            provider.transcribe_audio(b"audio")
+
+    def test_transcribe_audio_rejects_null_transcript(self):
+        """Null transcript → SarvamError."""
+        provider = self._make_provider(
+            mock_response=_stt_response(transcript=None),
+        )
+        with pytest.raises(SarvamError, match="not a string"):
+            provider.transcribe_audio(b"audio")
+
+    def test_transcribe_audio_rejects_empty_transcript(self):
+        """Whitespace-only transcript → SarvamError."""
+        provider = self._make_provider(
+            mock_response=_stt_response(transcript="   "),
+        )
+        with pytest.raises(SarvamError, match="empty"):
+            provider.transcribe_audio(b"audio")
+
+    def test_transcribe_audio_defaults_missing_confidence(self):
+        """Missing confidence field → defaults to 0.0."""
+        provider = self._make_provider(
+            mock_response={
+                "transcript": "hello world",
+                "language_code": "en-IN",
+            },
+        )
+        result = provider.transcribe_audio(b"audio")
+        assert result.transcript == "hello world"
+        assert result.detected_language == "en-IN"
+        assert result.confidence == 0.0
+
+    def test_transcribe_audio_defaults_missing_language_code(self):
+        """Missing language_code field → defaults to 'hi-IN'."""
+        provider = self._make_provider(
+            mock_response={
+                "transcript": "hello world",
+                "confidence": 0.88,
+            },
+        )
+        result = provider.transcribe_audio(b"audio")
+        assert result.transcript == "hello world"
+        assert result.detected_language == "hi-IN"
+        assert result.confidence == 0.88
+
+    # ── privacy: no logging of transcript ───────────────────────
+
+    def test_transcribe_audio_does_not_log_transcript(self, caplog):
+        """The transcript must never appear in logs."""
+        import logging
+
+        transcript = "sensitive ward 8 complaint about water"
+        provider = self._make_provider(
+            mock_response=_stt_response(transcript=transcript),
+        )
+        with caplog.at_level(logging.DEBUG):
+            provider.transcribe_audio(b"audio")
+
+        assert transcript not in caplog.text

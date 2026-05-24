@@ -9,7 +9,8 @@ class TestLocalAIProvider:
 
     def test_transcribe_audio_returns_placeholder(self):
         result = self.provider.transcribe_audio(b"fake audio")
-        assert "not available" in result
+        assert "not available" in result.transcript
+        assert isinstance(result.confidence, float)
 
     def test_translate_is_noop(self):
         text = "paani nahi aa raha"

@@ -168,3 +168,27 @@ class EvalRunRead(BaseModel):
     draft_faithfulness: float
     p95_latency_ms: float
     created_at: datetime
+
+
+# ── Transcription ────────────────────────────────────────────────────
+
+
+from dataclasses import dataclass
+
+
+@dataclass
+class TranscriptionResult:
+    """Result from audio transcription.
+
+    Attributes
+    ----------
+    transcript : str
+        The transcribed text.
+    detected_language : str
+        Language code detected by the STT engine.
+    confidence : float
+        Confidence score between 0.0 and 1.0.
+    """
+    transcript: str
+    detected_language: str
+    confidence: float

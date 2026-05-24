@@ -4,7 +4,7 @@ import time
 from typing import Callable, Dict, Optional, Protocol
 
 from app.config import get_settings
-from app.schemas import ExtractionResult
+from app.schemas import ExtractionResult, TranscriptionResult
 from app.services.extraction import extract_grievance
 from app.services.redaction import redact_all
 from app.services.sarvam_client import SarvamClient, SarvamError
@@ -19,8 +19,12 @@ logger = logging.getLogger(__name__)
 class AIProvider(Protocol):
     """Interface for AI providers. Implementations can be swapped at runtime."""
 
-    def transcribe_audio(self, audio_bytes: bytes) -> str:
-        """Convert audio bytes to text transcript."""
+    def transcribe_audio(
+        self, audio_bytes: bytes,
+        language_code: str = "hi-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
+        """Convert audio bytes to TranscriptionResult with transcript, detected_language, confidence."""
         ...
 
     def translate_text(
@@ -45,8 +49,16 @@ class AIProvider(Protocol):
 class LocalAIProvider:
     """Deterministic local provider — no API keys needed."""
 
-    def transcribe_audio(self, audio_bytes: bytes) -> str:
-        return "[local: audio transcription not available]"
+    def transcribe_audio(
+        self, audio_bytes: bytes,
+        language_code: str = "hi-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
+        return TranscriptionResult(
+            transcript="[local: audio transcription not available]",
+            detected_language=language_code,
+            confidence=0.0,
+        )
 
     def translate_text(
         self, text: str, target_language: str,
@@ -229,10 +241,76 @@ class SarvamAIProvider:
         self._check_pii_leak(draft_text)
         return draft_text
 
-    # ── remaining stubs ───────────────────────────────────────
+    # ── transcribe_audio ───────────────────────────────────────
 
-    def transcribe_audio(self, audio_bytes: bytes) -> str:
-        raise NotImplementedError("Sarvam STT not yet implemented")
+    def transcribe_audio(
+        self, audio_bytes: bytes,
+        language_code: str = "hi-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
+        """Transcribe audio bytes to text via Sarvam STT.
+
+        Parameters
+        ----------
+        audio_bytes : bytes
+            Raw audio data. Must be <= 10 MB.
+        language_code : str
+            Language code for the STT model (default "hi-IN").
+        model : Optional[str]
+            STT model name. Falls back to sarvam_stt_model setting.
+
+        Returns
+        -------
+        TranscriptionResult
+            Dataclass with transcript, detected_language, confidence.
+
+        Raises
+        ------
+        SarvamError
+            If audio > 10 MB, the API call fails, or the response is invalid.
+        """
+        settings = get_settings()
+
+        # ── size guard ─────────────────────────────────────────
+        max_size = 10 * 1024 * 1024  # 10 MB
+        if len(audio_bytes) > max_size:
+            raise SarvamError(
+                "Audio too large: %d bytes (max %d bytes / 10 MB)"
+                % (len(audio_bytes), max_size)
+            )
+
+        # ── model resolution ───────────────────────────────────
+        if model is None:
+            model = settings.sarvam_stt_model
+
+        # ── API call ───────────────────────────────────────────
+        response = self._client.post_audio_bytes(
+            "/speech-to-text", audio_bytes, model=model, language=language_code,
+        )
+
+        # ── extract and validate ───────────────────────────────
+        try:
+            transcript = response["transcript"]
+        except KeyError as exc:
+            raise SarvamError(
+                "Unexpected STT response shape: missing 'transcript' key"
+            ) from exc
+
+        if not isinstance(transcript, str) or not transcript.strip():
+            raise SarvamError(
+                "STT response transcript was empty or not a string"
+            )
+
+        detected_language = response.get("language_code", "hi-IN")
+        confidence = float(response.get("confidence", 0.0))
+
+        return TranscriptionResult(
+            transcript=transcript,
+            detected_language=detected_language,
+            confidence=confidence,
+        )
+
+    # ── remaining stubs ───────────────────────────────────────
 
     def translate_text(
         self, text: str, target_language: str,
@@ -372,12 +450,18 @@ class FallbackAIProvider:
         self.fallback = fallback
         self.circuit_breaker = circuit_breaker or CircuitBreaker()
 
-    def transcribe_audio(self, audio_bytes: bytes) -> str:
+    def transcribe_audio(
+        self, audio_bytes: bytes,
+        language_code: str = "hi-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
         return self._call_with_fallback(
             "transcribe_audio",
             self.primary.transcribe_audio,
             self.fallback.transcribe_audio,
             audio_bytes,
+            language_code,
+            model,
         )
 
     def translate_text(

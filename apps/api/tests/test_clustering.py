@@ -138,8 +138,9 @@ class TestFindMatchingCluster:
             def translate_text(self, text, target_language, source_language=None):
                 return "paani nahi aa raha ward 8"
 
-            def transcribe_audio(self, audio_bytes):
-                return ""
+            def transcribe_audio(self, audio_bytes, language_code="hi-IN", model=None):
+                from app.schemas import TranscriptionResult
+                return TranscriptionResult(transcript="", detected_language="hi-IN", confidence=0.0)
 
             def generate_draft(self, cluster_context):
                 return ""
