@@ -22,8 +22,8 @@ class FakePrimaryProvider:
             raise self.failures.pop(0)
         return "primary transcript"
 
-    def translate_text(self, text, target_language):
-        self.calls.append(("translate_text", text, target_language))
+    def translate_text(self, text, target_language, source_language=None):
+        self.calls.append(("translate_text", text, target_language, source_language))
         if self.failures:
             raise self.failures.pop(0)
         return "primary translation"
@@ -49,8 +49,8 @@ class FakeFallbackProvider:
         self.calls.append(("transcribe_audio", audio_bytes))
         return "fallback transcript"
 
-    def translate_text(self, text, target_language):
-        self.calls.append(("translate_text", text, target_language))
+    def translate_text(self, text, target_language, source_language=None):
+        self.calls.append(("translate_text", text, target_language, source_language))
         return "fallback translation"
 
     def extract_grievance(self, text, language="hi") -> Any:
@@ -70,8 +70,8 @@ def test_single_sarvam_error_falls_back_and_returns_fallback_result(caplog):
     result = provider.translate_text("namaste", "en")
 
     assert result == "fallback translation"
-    assert primary.calls == [("translate_text", "namaste", "en")]
-    assert fallback.calls == [("translate_text", "namaste", "en")]
+    assert primary.calls == [("translate_text", "namaste", "en", None)]
+    assert fallback.calls == [("translate_text", "namaste", "en", None)]
     assert "falling back to local AI provider" in caplog.text
 
 
@@ -96,7 +96,7 @@ def test_circuit_opens_after_threshold_and_skips_primary_until_recovery():
     assert provider.translate_text("three", "en") == "fallback translation"
 
     assert len(primary.calls) == 2
-    assert fallback.calls[-1] == ("translate_text", "three", "en")
+    assert fallback.calls[-1] == ("translate_text", "three", "en", None)
 
 
 def test_circuit_failure_count_resets_outside_failure_window():
@@ -165,7 +165,7 @@ def test_get_ai_provider_reuses_circuit_breaker_across_request_scoped_instances(
     class AlwaysFailingSarvamProvider:
         calls = 0
 
-        def translate_text(self, text, target_language):
+        def translate_text(self, text, target_language, source_language=None):
             AlwaysFailingSarvamProvider.calls += 1
             raise SarvamError("sarvam unavailable")
 

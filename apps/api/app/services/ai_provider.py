@@ -23,7 +23,10 @@ class AIProvider(Protocol):
         """Convert audio bytes to text transcript."""
         ...
 
-    def translate_text(self, text: str, target_language: str) -> str:
+    def translate_text(
+        self, text: str, target_language: str,
+        source_language: Optional[str] = None,
+    ) -> str:
         """Translate text to target language."""
         ...
 
@@ -45,7 +48,10 @@ class LocalAIProvider:
     def transcribe_audio(self, audio_bytes: bytes) -> str:
         return "[local: audio transcription not available]"
 
-    def translate_text(self, text: str, target_language: str) -> str:
+    def translate_text(
+        self, text: str, target_language: str,
+        source_language: Optional[str] = None,
+    ) -> str:
         return text  # no-op for local
 
     def extract_grievance(
@@ -228,8 +234,66 @@ class SarvamAIProvider:
     def transcribe_audio(self, audio_bytes: bytes) -> str:
         raise NotImplementedError("Sarvam STT not yet implemented")
 
-    def translate_text(self, text: str, target_language: str) -> str:
-        raise NotImplementedError("Sarvam translation not yet implemented")
+    def translate_text(
+        self, text: str, target_language: str,
+        source_language: Optional[str] = None,
+    ) -> str:
+        """Translate *text* to *target_language* via Sarvam Mayura.
+
+        Skips API call when ``source_language == target_language``
+        (cost saver).  Results are cached in memory for the provider
+        lifetime so that the same grievance translated twice in one
+        pipeline run reuses the result.
+        """
+        # ── skip no‑op translations ───────────────────────────
+        if source_language is not None and source_language == target_language:
+            return text
+
+        # ── in‑memory cache (lazy init) ─────────────────────────
+        if not hasattr(self, "_translate_cache"):
+            self._translate_cache: Dict = {}
+        cache_key = (hash(text), target_language, source_language)
+        cached = self._translate_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # ── Mayura translate payload ────────────────────────────
+        settings = get_settings()
+        payload: Dict = {
+            "model": settings.sarvam_translate_model,
+            "input": text,
+            "target_language_code": target_language,
+        }
+        if source_language is not None:
+            payload["source_language_code"] = source_language
+
+        t0 = time.monotonic()
+        response = self._client.post_json("/translate", payload)
+        elapsed = time.monotonic() - t0
+
+        logger.debug(
+            "Sarvam translation: model=%s target=%s latency=%.2fs",
+            settings.sarvam_translate_model,
+            target_language,
+            elapsed,
+        )
+
+        # ── extract and validate ─────────────────────────────────
+        try:
+            translated = response["translated_text"]
+        except KeyError as exc:
+            raise SarvamError(
+                "Unexpected translate response shape: "
+                "missing 'translated_text' key"
+            ) from exc
+
+        if not isinstance(translated, str) or not translated.strip():
+            raise SarvamError(
+                "Translate response content was empty or not a string"
+            )
+
+        self._translate_cache[cache_key] = translated
+        return translated
 
     def extract_grievance(
         self, text: str, language: str = "hi"
@@ -316,13 +380,17 @@ class FallbackAIProvider:
             audio_bytes,
         )
 
-    def translate_text(self, text: str, target_language: str) -> str:
+    def translate_text(
+        self, text: str, target_language: str,
+        source_language: Optional[str] = None,
+    ) -> str:
         return self._call_with_fallback(
             "translate_text",
             self.primary.translate_text,
             self.fallback.translate_text,
             text,
             target_language,
+            source_language,
         )
 
     def extract_grievance(

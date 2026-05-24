@@ -294,3 +294,185 @@ class TestGenerateDraft:
 
         # The generated text must never appear in logs
         assert draft not in caplog.text
+
+
+# ── Translate response helper ────────────────────────────────────────
+
+
+def _translate_response(translated_text: str) -> Dict[str, Any]:
+    """Return a Sarvam Mayura translate response shape."""
+    return {"translated_text": translated_text}
+
+
+# ── Translate tests ──────────────────────────────────────────────────
+
+
+class TestTranslateText:
+    """All translate_text tests use FakeSarvamClient — zero HTTP."""
+
+    # ── helpers ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _make_provider(
+        mock_response: Optional[Dict[str, Any]] = None,
+        settings_overrides: Optional[Dict[str, Any]] = None,
+    ) -> SarvamAIProvider:
+        """Build a SarvamAIProvider wired to a FakeSarvamClient."""
+        import app.services.ai_provider as mod
+
+        overrides = dict(settings_overrides or {})
+        overrides.setdefault("sarvam_api_key", "fake-key-for-tests")
+        overrides.setdefault("sarvam_translate_model", "mayura:v1")
+        overrides.setdefault("sarvam_api_base", "https://api.sarvam.ai")
+        overrides.setdefault("sarvam_timeout_seconds", 30.0)
+        overrides.setdefault("sarvam_max_retries", 0)
+
+        test_settings = Settings(_env_file=None, **overrides)
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(mod, "get_settings", lambda: test_settings)
+
+        fake_client = FakeSarvamClient(response=mock_response)
+        try:
+            provider = SarvamAIProvider(client=fake_client)
+            # Reset cache between tests
+            provider._translate_cache = {}
+            return provider
+        finally:
+            monkeypatch.undo()
+
+    # ── happy path ──────────────────────────────────────────────
+
+    def test_translate_text_returns_translation(self):
+        """Mock client returns translated_text; verify result."""
+        provider = self._make_provider(
+            mock_response=_translate_response("Hello"),
+        )
+        result = provider.translate_text("नमस्ते", "en", source_language="hi")
+        assert result == "Hello"
+
+    # ── skip when source == target ──────────────────────────────
+
+    def test_translate_text_skips_when_source_equals_target(self):
+        """source==target → no API call, returns text unchanged."""
+        provider = self._make_provider(
+            mock_response=_translate_response("should not be called"),
+        )
+        result = provider.translate_text("नमस्ते", "hi", source_language="hi")
+        assert result == "नमस्ते"
+        # Must not have made any API call
+        fake = provider.client
+        assert len(fake.calls) == 0
+
+    # ── payload verification ────────────────────────────────────
+
+    def test_translate_text_calls_translate_endpoint_with_correct_payload(self):
+        """Verify /translate path, model, input, target fields."""
+        provider = self._make_provider(
+            mock_response=_translate_response("Hello"),
+        )
+        provider.translate_text("नमस्ते", "en", source_language="hi")
+
+        fake = provider.client
+        assert len(fake.calls) == 1
+        path, payload = fake.calls[0]
+        assert path == "/translate"
+        assert payload["model"] == "mayura:v1"
+        assert payload["input"] == "नमस्ते"
+        assert payload["target_language_code"] == "en"
+
+    def test_translate_text_includes_source_when_provided(self):
+        """Verify source_language_code in payload when provided."""
+        provider = self._make_provider(
+            mock_response=_translate_response("Hello"),
+        )
+        provider.translate_text("नमस्ते", "en", source_language="hi")
+
+        fake = provider.client
+        _, payload = fake.calls[0]
+        assert payload["source_language_code"] == "hi"
+
+    def test_translate_text_auto_detects_source_when_omitted(self):
+        """When source_language not provided, it is absent from payload."""
+        provider = self._make_provider(
+            mock_response=_translate_response("Hello"),
+        )
+        provider.translate_text("नमस्ते", "en")
+
+        fake = provider.client
+        _, payload = fake.calls[0]
+        assert "source_language_code" not in payload
+
+    # ── response extraction ─────────────────────────────────────
+
+    def test_translate_text_extracts_translated_text_field(self):
+        """Verify response field extraction from translated_text key."""
+        provider = self._make_provider(
+            mock_response={"translated_text": "Bonjour"},
+        )
+        result = provider.translate_text("Hello", "fr", source_language="en")
+        assert result == "Bonjour"
+
+    def test_translate_text_handles_missing_translated_text_key(self):
+        """Response without translated_text key → SarvamError."""
+        provider = self._make_provider(
+            mock_response={"some_other_key": "value"},
+        )
+        with pytest.raises(SarvamError, match="translated_text"):
+            provider.translate_text("Hello", "fr", source_language="en")
+
+    # ── caching ─────────────────────────────────────────────────
+
+    def test_translate_text_caches_identical_request(self):
+        """Two calls with same text+target → only one API call."""
+        provider = self._make_provider(
+            mock_response=_translate_response("Hello"),
+        )
+        result1 = provider.translate_text("नमस्ते", "en", source_language="hi")
+        result2 = provider.translate_text("नमस्ते", "en", source_language="hi")
+
+        assert result1 == "Hello"
+        assert result2 == "Hello"
+        fake = provider.client
+        assert len(fake.calls) == 1
+
+    def test_translate_text_cache_key_includes_source_language(self):
+        """Same text+target but different source → separate API calls."""
+        provider = self._make_provider(
+            mock_response=_translate_response("Hello"),
+        )
+        provider.translate_text("नमस्ते", "en", source_language="hi")
+        provider.translate_text("नमस्ते", "en", source_language="mr")
+
+        fake = provider.client
+        assert len(fake.calls) == 2
+
+    def test_translate_text_rejects_null_translated_text(self):
+        """Null translated_text → SarvamError."""
+        provider = self._make_provider(
+            mock_response={"translated_text": None},
+        )
+        with pytest.raises(SarvamError, match="not a string"):
+            provider.translate_text("Hello", "fr", source_language="en")
+
+    def test_translate_text_rejects_empty_translated_text(self):
+        """Whitespace-only translated_text → SarvamError."""
+        provider = self._make_provider(
+            mock_response={"translated_text": "   "},
+        )
+        with pytest.raises(SarvamError, match="empty"):
+            provider.translate_text("Hello", "fr", source_language="en")
+
+    # ── privacy: no logging of text content ─────────────────────
+
+    def test_translate_text_does_not_log_text_or_translation(self, caplog):
+        """Neither the input text nor the translated text may appear in logs."""
+        import logging
+
+        provider = self._make_provider(
+            mock_response=_translate_response("Hello"),
+        )
+        with caplog.at_level(logging.DEBUG):
+            provider.translate_text("नमस्ते", "en", source_language="hi")
+
+        assert "नमस्ते" not in caplog.text
+        assert "Hello" not in caplog.text
