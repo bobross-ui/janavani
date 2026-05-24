@@ -18,7 +18,9 @@ export default function SubmitScreen() {
       const res = await submitGrievance({ user_id: MOCK_USER_ID, text: text.trim(), language, consent_public: true });
       setResult({ category: res.extraction.category, department: res.extraction.department, ward: res.extraction.ward, urgency: res.extraction.urgency, action: res.suggested_action, clusterTitle: res.matched_cluster_title });
     } catch (e: any) {
-      setError(e.message || "Failed to submit");
+      const detail = e?.message || "Unknown error";
+      // Show the raw error so you can debug — will show "Network request failed" if it's an IP issue
+      setError(detail);
     } finally { setLoading(false); }
   };
 
@@ -37,7 +39,11 @@ export default function SubmitScreen() {
       <Text style={styles.label}>Your grievance</Text>
       <TextInput style={[styles.input, styles.textArea]} multiline numberOfLines={5} placeholder="Describe the issue..." value={text} onChangeText={setText} />
       <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSubmit} disabled={loading || !text.trim()}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Submit grievance</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : (
+          <Text style={styles.buttonText}>
+            {text.trim() ? "Submit grievance" : "Type your grievance above"}
+          </Text>
+        )}
       </TouchableOpacity>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {result && (
@@ -74,7 +80,7 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#2b6cb0", paddingVertical: 16, borderRadius: 12, alignItems: "center", marginTop: 24 },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  error: { color: "#e53e3e", marginTop: 12, fontSize: 14 },
+  error: { color: "#e53e3e", marginTop: 12, fontSize: 14, backgroundColor: "#fff5f5", padding: 12, borderRadius: 8 },
   resultCard: { marginTop: 24, backgroundColor: "#f0fff4", borderRadius: 12, padding: 16, borderWidth: 1, borderColor: "#c6f6d5" },
   resultTitle: { fontSize: 16, fontWeight: "700", color: "#22543d", marginBottom: 8 },
   resultRow: { flexDirection: "row", marginBottom: 4 },
