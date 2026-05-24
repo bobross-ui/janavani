@@ -1,15 +1,33 @@
+from typing import Optional
+
 from sqlmodel import Session, select
 
 from app.models import ComplaintDraft, Grievance, IssueCluster
+from app.services.ai_provider import AIProvider, get_ai_provider
 
 
 def generate_complaint_draft(
-    session: Session, cluster_id: str
+    session: Session,
+    cluster_id: str,
+    provider: Optional[AIProvider] = None,
 ) -> ComplaintDraft:
     """Generate a formal complaint draft for a cluster.
 
     Returns a persisted ComplaintDraft record.
+
+    Parameters
+    ----------
+    session : Session
+        Database session.
+    cluster_id : str
+        ID of the cluster to generate a draft for.
+    provider : AIProvider, optional
+        AI provider to use for draft generation. If None, the configured
+        provider is obtained via get_ai_provider().
     """
+    if provider is None:
+        provider = get_ai_provider()
+
     cluster = session.get(IssueCluster, cluster_id)
     if not cluster:
         raise ValueError(f"Cluster {cluster_id} not found")
@@ -21,11 +39,35 @@ def generate_complaint_draft(
 
     source_ids = [g.id for g in grievances]
 
-    body = _compose_draft_body(cluster, grievances)
+    # Build cluster_context for the AI provider
+    area = f"Ward {cluster.ward}" if cluster.ward else cluster.landmark or "the affected area"
+    sample_grievances = [
+        {
+            "id": g.id,
+            "pii_redacted_text": g.pii_redacted_text or g.normalized_text or "Issue reported",
+            "raw_text": g.raw_text or "",
+            "consent_public": g.consent_public,
+        }
+        for g in grievances
+        if g.consent_public
+    ][:5]
+
+    cluster_context = {
+        "title": cluster.title or f"Public grievance — {cluster.issue_category}",
+        "department": cluster.department,
+        "area": area,
+        "ward": cluster.ward or "",
+        "language": "hi",
+        "grievance_count": cluster.grievance_count,
+        "summary": cluster.summary or "Multiple citizens have reported this issue.",
+        "sample_grievances": sample_grievances,
+    }
+
+    body = provider.generate_draft(cluster_context)
 
     draft = ComplaintDraft(
         cluster_id=cluster_id,
-        title=cluster.title or f"Public grievance — {cluster.issue_category}",
+        title=cluster_context["title"],
         body=body,
         department=cluster.department,
         language="hi",
@@ -36,47 +78,3 @@ def generate_complaint_draft(
     session.commit()
     session.refresh(draft)
     return draft
-
-
-def _compose_draft_body(
-    cluster: IssueCluster, grievances: list[Grievance]
-) -> str:
-    dept = cluster.department.replace("_", " ").title()
-    area = f"Ward {cluster.ward}" if cluster.ward else cluster.landmark or "the affected area"
-
-    lines = [
-        f"To,",
-        f"The {dept},",
-        "",
-        f"Subject: {cluster.title or 'Public Grievance'}",
-        "",
-        "Respected Sir/Madam,",
-        "",
-        f"We, the undersigned {cluster.grievance_count} citizens of {area}, "
-        f"wish to bring the following issue to your attention:",
-        "",
-        cluster.summary or "Multiple citizens have reported this issue.",
-        "",
-    ]
-
-    # Add representative redacted quotes (up to 3)
-    sample = [g for g in grievances if g.consent_public][:3]
-    if sample:
-        lines.append("Representative citizen reports:")
-        for g in sample:
-            text = g.pii_redacted_text or g.normalized_text or "Issue reported"
-            lines.append(f"- {text}")
-        lines.append("")
-
-    lines.extend([
-        f"This issue has been reported by {cluster.grievance_count} citizens "
-        f"over the past several days. The matter requires urgent attention "
-        f"as it affects daily life in {area}.",
-        "",
-        "We request that immediate action be taken to resolve this issue.",
-        "",
-        "Thank you,",
-        f"Concerned Citizens of {area}",
-    ])
-
-    return "\n".join(lines)
