@@ -53,6 +53,7 @@ class GrievanceRead(BaseModel):
     cluster_id: Optional[str] = None
     status: str
     consent_public: bool
+    audio_key: Optional[str] = None
     created_at: datetime
 
 

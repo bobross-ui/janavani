@@ -50,6 +50,7 @@ class Grievance(SQLModel, table=True):
     cluster_id: Optional[str] = Field(default=None, foreign_key="issue_clusters.id")
     status: str = Field(default="submitted", index=True)
     consent_public: bool = Field(default=True)
+    audio_key: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=_now)
 
 
