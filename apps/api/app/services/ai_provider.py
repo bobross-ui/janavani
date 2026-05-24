@@ -38,6 +38,14 @@ class AIProvider(Protocol):
         """Extract structured fields from grievance text."""
         ...
 
+    def transcribe_audio_translate(
+        self, audio_bytes: bytes,
+        target_language: str = "en-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
+        """Convert audio to text and translate to target language in one call."""
+        ...
+
     def generate_draft(self, cluster_context: dict) -> str:
         """Generate a formal complaint draft from cluster context."""
         ...
@@ -57,6 +65,17 @@ class LocalAIProvider:
         return TranscriptionResult(
             transcript="[local: audio transcription not available]",
             detected_language=language_code,
+            confidence=0.0,
+        )
+
+    def transcribe_audio_translate(
+        self, audio_bytes: bytes,
+        target_language: str = "en-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
+        return TranscriptionResult(
+            transcript="",
+            detected_language="en-IN",
             confidence=0.0,
         )
 
@@ -310,6 +329,71 @@ class SarvamAIProvider:
             confidence=confidence,
         )
 
+    # ── transcribe_audio_translate ──────────────────────────────
+
+    def transcribe_audio_translate(
+        self, audio_bytes: bytes,
+        target_language: str = "en-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
+        """Transcribe audio and translate to target language via Sarvam STT Translate.
+
+        Parameters
+        ----------
+        audio_bytes : bytes
+            Raw audio data. Must be <= 10 MB.
+        target_language : str
+            Target language code (default "en-IN").
+        model : Optional[str]
+            STT Translate model. Falls back to sarvam_stt_translate_model setting.
+
+        Returns
+        -------
+        TranscriptionResult
+            Dataclass with transcript, detected_language, confidence.
+
+        Raises
+        ------
+        SarvamError
+            If audio > 10 MB, the API call fails, or the response is invalid.
+        """
+        settings = get_settings()
+
+        # ── size guard ─────────────────────────────────────────
+        max_size = 10 * 1024 * 1024  # 10 MB
+        if len(audio_bytes) > max_size:
+            raise SarvamError(
+                "Audio too large: %d bytes (max %d bytes / 10 MB)"
+                % (len(audio_bytes), max_size)
+            )
+
+        # ── model resolution ───────────────────────────────────
+        if model is None:
+            model = settings.sarvam_stt_translate_model
+
+        # ── API call ───────────────────────────────────────────
+        response = self._client.post_audio_bytes(
+            "/speech-to-text-translate", audio_bytes,
+            model=model, language=target_language,
+        )
+
+        # ── extract and validate ───────────────────────────────
+        transcript = response.get("transcript", "")
+        detected_language = response.get("language_code", "en-IN")
+        confidence = float(response.get("confidence", 0.0))
+
+        # Validate transcript is a non-empty string
+        if not isinstance(transcript, str) or not transcript.strip():
+            raise SarvamError(
+                "STT Translate response transcript was empty or not a string"
+            )
+
+        return TranscriptionResult(
+            transcript=transcript,
+            detected_language=detected_language,
+            confidence=confidence,
+        )
+
     # ── remaining stubs ───────────────────────────────────────
 
     def translate_text(
@@ -461,6 +545,20 @@ class FallbackAIProvider:
             self.fallback.transcribe_audio,
             audio_bytes,
             language_code,
+            model,
+        )
+
+    def transcribe_audio_translate(
+        self, audio_bytes: bytes,
+        target_language: str = "en-IN",
+        model: Optional[str] = None,
+    ) -> TranscriptionResult:
+        return self._call_with_fallback(
+            "transcribe_audio_translate",
+            self.primary.transcribe_audio_translate,
+            self.fallback.transcribe_audio_translate,
+            audio_bytes,
+            target_language,
             model,
         )
 

@@ -27,6 +27,17 @@ class FakePrimaryProvider:
             confidence=0.9,
         )
 
+    def transcribe_audio_translate(self, audio_bytes, target_language="en-IN", model=None):
+        self.calls.append(("transcribe_audio_translate", audio_bytes, target_language, model))
+        if self.failures:
+            raise self.failures.pop(0)
+        from app.schemas import TranscriptionResult
+        return TranscriptionResult(
+            transcript="primary translate transcript",
+            detected_language=target_language,
+            confidence=0.95,
+        )
+
     def translate_text(self, text, target_language, source_language=None):
         self.calls.append(("translate_text", text, target_language, source_language))
         if self.failures:
@@ -56,6 +67,15 @@ class FakeFallbackProvider:
         return TranscriptionResult(
             transcript="fallback transcript",
             detected_language="hi-IN",
+            confidence=0.0,
+        )
+
+    def transcribe_audio_translate(self, audio_bytes, target_language="en-IN", model=None):
+        self.calls.append(("transcribe_audio_translate", audio_bytes, target_language, model))
+        from app.schemas import TranscriptionResult
+        return TranscriptionResult(
+            transcript="fallback translate transcript",
+            detected_language=target_language,
             confidence=0.0,
         )
 

@@ -700,3 +700,115 @@ class TestTranscribeAudio:
             provider.transcribe_audio(b"audio")
 
         assert transcript not in caplog.text
+
+
+# ── TranscribeAudioTranslate tests ────────────────────────────────────
+
+
+class TestTranscribeAudioTranslate:
+    """All transcribe_audio_translate tests use FakeSarvamClient — zero HTTP."""
+
+    # ── helpers ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _make_provider(
+        mock_response: Optional[Dict[str, Any]] = None,
+        settings_overrides: Optional[Dict[str, Any]] = None,
+    ) -> SarvamAIProvider:
+        """Build a SarvamAIProvider wired to a FakeSarvamClient."""
+        import app.services.ai_provider as mod
+
+        overrides = dict(settings_overrides or {})
+        overrides.setdefault("sarvam_api_key", "fake-key-for-tests")
+        overrides.setdefault("sarvam_stt_translate_model", "saaras:v2.5")
+        overrides.setdefault("sarvam_api_base", "https://api.sarvam.ai")
+        overrides.setdefault("sarvam_timeout_seconds", 30.0)
+        overrides.setdefault("sarvam_max_retries", 0)
+
+        test_settings = Settings(_env_file=None, **overrides)
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(mod, "get_settings", lambda: test_settings)
+
+        fake_client = FakeSarvamClient(response=mock_response)
+        provider = SarvamAIProvider(client=fake_client)
+        provider._test_monkeypatch = monkeypatch  # type: ignore[attr-defined]
+        return provider
+
+    # ── happy path ──────────────────────────────────────────────
+
+    def test_transcribe_audio_translate_returns_transcription_result(self):
+        """Happy path: returns TranscriptionResult with transcript, language, confidence."""
+        provider = self._make_provider(
+            mock_response=_stt_response(
+                transcript="water supply is affected in ward 8",
+                language_code="en-IN",
+                confidence=0.93,
+            ),
+        )
+        result = provider.transcribe_audio_translate(b"fake wav audio")
+        assert result.transcript == "water supply is affected in ward 8"
+        assert result.detected_language == "en-IN"
+        assert result.confidence == 0.93
+        assert isinstance(result.confidence, float)
+
+    # ── endpoint verification ───────────────────────────────────
+
+    def test_transcribe_audio_translate_calls_stt_translate_endpoint(self):
+        """Verify /speech-to-text-translate path, model, language, audio_bytes."""
+        provider = self._make_provider(mock_response=_stt_response())
+        audio = b"dummy audio content"
+        provider.transcribe_audio_translate(audio, target_language="en-IN")
+        fake = provider.client
+        assert len(fake.calls) == 1
+        call = fake.calls[0]  # (path, audio_bytes, model, language)
+        assert call[0] == "/speech-to-text-translate"
+        assert call[1] == audio
+        assert call[2] == "saaras:v2.5"
+        assert call[3] == "en-IN"
+
+    # ── defaults ────────────────────────────────────────────────
+
+    def test_transcribe_audio_translate_defaults_target_language(self):
+        """Default target_language is 'en-IN' when not provided."""
+        provider = self._make_provider(mock_response=_stt_response())
+        provider.transcribe_audio_translate(b"audio")
+        fake = provider.client
+        _, _, _, language = fake.calls[0]
+        assert language == "en-IN"
+
+    # ── size validation ─────────────────────────────────────────
+
+    def test_transcribe_audio_translate_rejects_audio_over_10mb(self):
+        """Audio > 10 MB raises SarvamError before any API call."""
+        provider = self._make_provider(mock_response=_stt_response())
+        large_audio = b"x" * (10 * 1024 * 1024 + 1)
+        with pytest.raises(SarvamError, match="10"):
+            provider.transcribe_audio_translate(large_audio)
+        fake = provider.client
+        assert len(fake.calls) == 0
+
+    # ── response extraction ─────────────────────────────────────
+
+    def test_transcribe_audio_translate_handles_missing_fields(self):
+        """Missing confidence and language_code → defaults (0.0, 'en-IN')."""
+        provider = self._make_provider(
+            mock_response={"transcript": "hello world"},
+        )
+        result = provider.transcribe_audio_translate(b"audio")
+        assert result.transcript == "hello world"
+        assert result.detected_language == "en-IN"
+        assert result.confidence == 0.0
+
+    # ── privacy: no logging of transcript ───────────────────────
+
+    def test_transcribe_audio_translate_does_not_log_transcript(self, caplog):
+        """The transcript must never appear in logs."""
+        import logging
+
+        transcript = "sensitive ward 8 complaint about water supply"
+        provider = self._make_provider(
+            mock_response=_stt_response(transcript=transcript),
+        )
+        with caplog.at_level(logging.DEBUG):
+            provider.transcribe_audio_translate(b"audio")
+        assert transcript not in caplog.text
