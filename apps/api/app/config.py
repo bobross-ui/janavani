@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     sarvam_fallback_on_error: bool = True
     allow_provider_override: bool = False
     clustering_pivot_language: str = "hi"
+    audio_storage_dir: str = "data/audio"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
