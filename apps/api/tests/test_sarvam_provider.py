@@ -812,3 +812,123 @@ class TestTranscribeAudioTranslate:
         with caplog.at_level(logging.DEBUG):
             provider.transcribe_audio_translate(b"audio")
         assert transcript not in caplog.text
+
+
+# ── synthesize_speech tests ────────────────────────────────────────────
+
+
+class TestSynthesizeSpeech:
+    """All synthesize_speech tests use FakeSarvamClient — zero HTTP."""
+
+    # ── helpers ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _make_provider(
+        mock_response: Optional[Dict[str, Any]] = None,
+    ) -> SarvamAIProvider:
+        """Build a SarvamAIProvider wired to a FakeSarvamClient."""
+        import app.services.ai_provider as mod
+
+        settings_overrides = {
+            "sarvam_api_key": "fake-key-for-tests",
+            "sarvam_tts_model": "bulbul:v3",
+            "sarvam_api_base": "https://api.sarvam.ai",
+            "sarvam_timeout_seconds": 30.0,
+            "sarvam_max_retries": 0,
+        }
+
+        test_settings = Settings(_env_file=None, **settings_overrides)
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(mod, "get_settings", lambda: test_settings)
+
+        fake_client = FakeSarvamClient(response=mock_response)
+        try:
+            return SarvamAIProvider(client=fake_client)
+        finally:
+            monkeypatch.undo()
+
+    @staticmethod
+    def _tts_response(audio_data: bytes = b"hello speech") -> Dict[str, Any]:
+        """Return a Sarvam TTS response with base64-encoded audio."""
+        import base64
+
+        encoded = base64.b64encode(audio_data).decode("ascii")
+        return {"audios": [encoded]}
+
+    # ── happy path ──────────────────────────────────────────────
+
+    def test_synthesize_speech_returns_decoded_bytes(self):
+        """Happy path: returns decoded bytes from audios[0]."""
+        expected_audio = b"hello speech"
+        mock_response = self._tts_response(audio_data=expected_audio)
+        provider = self._make_provider(mock_response=mock_response)
+
+        result = provider.synthesize_speech("hello")
+
+        assert isinstance(result, bytes)
+        assert result == expected_audio
+
+    # ── endpoint verification ───────────────────────────────────
+
+    def test_synthesize_speech_calls_text_to_speech_endpoint(self):
+        """Verify POST /text-to-speech with model, language, text in payload."""
+        provider = self._make_provider(
+            mock_response=self._tts_response(),
+        )
+
+        provider.synthesize_speech("hello world", language="ta-IN", speaker="meera")
+
+        fake = provider.client
+        assert len(fake.calls) == 1
+        path, payload = fake.calls[0]
+        assert path == "/text-to-speech"
+        assert payload["model"] == "bulbul:v3"
+        assert payload["inputs"] == ["hello world"]
+        assert payload["target_language_code"] == "ta-IN"
+        assert payload["speaker"] == "meera"
+
+    # ── validation ──────────────────────────────────────────────
+
+    def test_synthesize_speech_rejects_text_over_500_chars(self):
+        """Text > 500 characters raises SarvamError before any API call."""
+        provider = self._make_provider(
+            mock_response=self._tts_response(),
+        )
+        long_text = "x" * 501
+
+        with pytest.raises(SarvamError, match="500"):
+            provider.synthesize_speech(long_text)
+
+        fake = provider.client
+        assert len(fake.calls) == 0
+
+    # ── defaults ────────────────────────────────────────────────
+
+    def test_synthesize_speech_defaults_language_and_speaker(self):
+        """Default language='hi-IN' and speaker='default' when not provided."""
+        provider = self._make_provider(
+            mock_response=self._tts_response(),
+        )
+
+        provider.synthesize_speech("hello")
+
+        fake = provider.client
+        _, payload = fake.calls[0]
+        assert payload["target_language_code"] == "hi-IN"
+        assert payload["speaker"] == "default"
+
+    # ── privacy: no logging of text ──────────────────────────────
+
+    def test_synthesize_speech_does_not_log_text(self, caplog):
+        """The text must never appear in logs (privacy)."""
+        import logging
+
+        sensitive_text = "sensitive ward 8 complaint about water supply"
+        provider = self._make_provider(
+            mock_response=self._tts_response(),
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            provider.synthesize_speech(sensitive_text)
+
+        assert sensitive_text not in caplog.text

@@ -1,4 +1,5 @@
 from datetime import datetime
+from dataclasses import dataclass
 from typing import Optional
 
 from pydantic import BaseModel
@@ -171,10 +172,16 @@ class EvalRunRead(BaseModel):
     created_at: datetime
 
 
+# ── TTS ────────────────────────────────────────────────────────────────
+
+
+class TTSRequest(BaseModel):
+    text: str
+    language: str = "hi-IN"
+    speaker: str = "default"
+
+
 # ── Transcription ────────────────────────────────────────────────────
-
-
-from dataclasses import dataclass
 
 
 @dataclass

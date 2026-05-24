@@ -1,3 +1,4 @@
+import base64
 import logging
 import re
 import time
@@ -48,6 +49,12 @@ class AIProvider(Protocol):
 
     def generate_draft(self, cluster_context: dict) -> str:
         """Generate a formal complaint draft from cluster context."""
+        ...
+
+    def synthesize_speech(
+        self, text: str, language: str = "hi-IN", speaker: str = "default"
+    ) -> bytes:
+        """Convert text to speech audio bytes."""
         ...
 
 
@@ -112,6 +119,11 @@ class LocalAIProvider:
             f"Thank you,\n"
             f"Citizens of {area}"
         )
+
+    def synthesize_speech(
+        self, text: str, language: str = "hi-IN", speaker: str = "default"
+    ) -> bytes:
+        return b""
 
 
 # ── Sarvam provider (placeholder) ─────────────────────────────────────
@@ -462,6 +474,65 @@ class SarvamAIProvider:
     ) -> ExtractionResult:
         raise NotImplementedError("Sarvam extraction not yet implemented")
 
+    # ── synthesize_speech ───────────────────────────────────────
+
+    def synthesize_speech(
+        self, text: str, language: str = "hi-IN", speaker: str = "default"
+    ) -> bytes:
+        """Convert text to speech via Sarvam TTS.
+
+        Parameters
+        ----------
+        text : str
+            The text to synthesize. Must be <= 500 characters.
+        language : str
+            Target language code (default "hi-IN").
+        speaker : str
+            Speaker name (default "default").
+
+        Returns
+        -------
+        bytes
+            Decoded WAV audio bytes.
+
+        Raises
+        ------
+        SarvamError
+            If text > 500 characters, or the API call fails.
+        """
+        settings = get_settings()
+
+        # ── size guard ─────────────────────────────────────────
+        if len(text) > 500:
+            raise SarvamError(
+                "Text too long for TTS: %d characters (max 500)" % len(text)
+            )
+
+        # ── TTS payload ────────────────────────────────────────
+        payload: Dict = {
+            "model": settings.sarvam_tts_model,
+            "inputs": [text],
+            "target_language_code": language,
+            "speaker": speaker,
+        }
+
+        response = self._client.post_json("/text-to-speech", payload)
+
+        # ── decode base64 audio ─────────────────────────────────
+        try:
+            encoded = response["audios"][0]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise SarvamError(
+                "Unexpected TTS response shape: missing 'audios' key or empty list"
+            ) from exc
+
+        try:
+            audio_bytes = base64.b64decode(encoded)
+        except Exception as exc:
+            raise SarvamError("Failed to decode TTS audio base64") from exc
+
+        return audio_bytes
+
 
 # ── Fallback provider and circuit breaker ─────────────────────────────
 
@@ -592,6 +663,18 @@ class FallbackAIProvider:
             self.primary.generate_draft,
             self.fallback.generate_draft,
             cluster_context,
+        )
+
+    def synthesize_speech(
+        self, text: str, language: str = "hi-IN", speaker: str = "default"
+    ) -> bytes:
+        return self._call_with_fallback(
+            "synthesize_speech",
+            self.primary.synthesize_speech,
+            self.fallback.synthesize_speech,
+            text,
+            language,
+            speaker,
         )
 
     def _call_with_fallback(self, method_name: str, primary_call, fallback_call, *args):

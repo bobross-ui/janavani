@@ -56,6 +56,12 @@ class FakePrimaryProvider:
             raise self.failures.pop(0)
         return "primary draft"
 
+    def synthesize_speech(self, text, language="hi-IN", speaker="default"):
+        self.calls.append(("synthesize_speech", text, language, speaker))
+        if self.failures:
+            raise self.failures.pop(0)
+        return b"primary tts audio"
+
 
 class FakeFallbackProvider:
     def __init__(self):
@@ -90,6 +96,10 @@ class FakeFallbackProvider:
     def generate_draft(self, cluster_context):
         self.calls.append(("generate_draft", cluster_context))
         return "fallback draft"
+
+    def synthesize_speech(self, text, language="hi-IN", speaker="default"):
+        self.calls.append(("synthesize_speech", text, language, speaker))
+        return b"fallback tts audio"
 
 
 def test_single_sarvam_error_falls_back_and_returns_fallback_result(caplog):
