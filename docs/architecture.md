@@ -87,9 +87,9 @@ class AIProvider(Protocol):
     def generate_draft(cluster_context) -> str
 ```
 
-`LocalAIProvider` implements extraction via keyword matching, returns no-op
-translations, and cannot perform STT, TTS, or draft generation (methods raise
-`SarvamError` or return placeholders indicating the capability is unavailable).
+`LocalAIProvider` implements extraction via keyword matching, template-based
+draft generation, and no-op translations. It cannot perform STT or TTS (methods
+return placeholders or raise `SarvamError` indicating the capability is unavailable).
 
 `SarvamAIProvider` delegates to Sarvam's REST API: Saarika for STT, Saaras for STT-translate, Mayura for translation, Bulbul for TTS, and Sarvam-M for chat-based extraction and draft generation. Extraction uses a structured JSON prompt; any parse failure or PII leak raises `SarvamError`, triggering the fallback chain.
 

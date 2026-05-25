@@ -52,7 +52,7 @@ The two remaining Sarvam misses:
 ## Running evals
 
 ```bash
-# Local provider (free, fast)
+# Local provider (free, fast — expects 34/50 due to no Marathi/Tamil keywords)
 make bhasha-test
 
 # Sarvam provider (requires SARVAM_API_KEY)

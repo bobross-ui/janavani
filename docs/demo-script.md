@@ -68,7 +68,8 @@ curl -X POST http://localhost:8000/evals/pipeline \
 ## 4. Run the eval harness
 
 ```bash
-# Local provider (fast, no API key needed)
+# Local provider — fast, no API key needed.
+# Expects 34/50 (keyword extraction doesn't cover Marathi/Tamil).
 make bhasha-test
 
 # Sarvam comparison (requires SARVAM_API_KEY in .env)
