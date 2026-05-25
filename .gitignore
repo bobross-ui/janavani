@@ -20,9 +20,10 @@ build/
 .DS_Store
 Thumbs.db
 
-# Markdown — only README.md is allowed
+# Markdown — only README.md and docs/ are allowed
 *.md
 !README.md
+!docs/*.md
 
 # Node
 node_modules/
