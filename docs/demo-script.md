@@ -88,8 +88,12 @@ make mobile-dev
 ```
 
 Opens Expo dev server. Scan the QR code with Expo Go on Android. On the submit
-screen, type or speak a grievance. The complaint is transcribed, extracted,
-redacted, and routed to the API.
+screen, type a grievance — text works with the default local provider.
+
+Voice input requires a Sarvam API key (`SARVAM_API_KEY` in `.env`) because
+speech-to-text and translation are Sarvam-only capabilities. With the key set,
+speak a grievance; the complaint is transcribed, extracted, redacted, and
+routed to the API.
 
 ## 6. Tear down
 

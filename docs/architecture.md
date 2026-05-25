@@ -57,8 +57,8 @@
 │              ┌──────────────┐                            │
 │              │   Postgres   │                            │
 │              │  (pgvector   │                            │
-│              │   ready for  │                            │
-│              │   1.3)       │                            │
+│              │   planned    │                            │
+│              │   for 1.3)   │                            │
 │              └──────────────┘                            │
 └───────────────────────────────────────────────────────────┘
         │
@@ -87,7 +87,9 @@ class AIProvider(Protocol):
     def generate_draft(cluster_context) -> str
 ```
 
-`LocalAIProvider` implements extraction via keyword matching, returns no-op translations, and raises `SarvamError` on methods it cannot support (STT, TTS).
+`LocalAIProvider` implements extraction via keyword matching, returns no-op
+translations, and cannot perform STT, TTS, or draft generation (methods raise
+`SarvamError` or return placeholders indicating the capability is unavailable).
 
 `SarvamAIProvider` delegates to Sarvam's REST API: Saarika for STT, Saaras for STT-translate, Mayura for translation, Bulbul for TTS, and Sarvam-M for chat-based extraction and draft generation. Extraction uses a structured JSON prompt; any parse failure or PII leak raises `SarvamError`, triggering the fallback chain.
 
@@ -105,7 +107,7 @@ class AIProvider(Protocol):
 ## Data model (simplified)
 
 ```
-User ──< Grievance ──< IssueCluster
+User ──< Grievance >── IssueCluster
                      │
                      ├── category, department, urgency
                      ├── ward, landmark

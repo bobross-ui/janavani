@@ -18,7 +18,7 @@ The output is not an individual ticket. It is a **cluster** — a public, joinab
 | Requires citizen to know department/category | Extracts department and category automatically |
 | Text-only, form-driven | Voice-first — speak naturally |
 | No language support for regional scripts | Hindi, Marathi, Tamil, Hinglish, English — and growing |
-| No clustering of similar complaints | Automatic cluster matching by category + ward + semantic similarity |
+| No clustering of similar complaints | Automatic cluster matching by category + ward + token similarity (semantic embeddings planned in 1.3) |
 | No public visibility into repeated issues | Public dashboard showing area-wise issue density |
 | Individual resolution tracking | Collective urgency scoring and formal complaint drafting |
 
