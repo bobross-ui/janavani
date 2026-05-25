@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import re
 import time
@@ -472,10 +473,132 @@ class SarvamAIProvider:
     def extract_grievance(
         self, text: str, language: str = "hi-IN"
     ) -> ExtractionResult:
-        # Sarvam has no extraction endpoint — keyword extraction is always local.
-        # Delegate to the same logic LocalAIProvider uses so AI_PROVIDER=sarvam works end-to-end.
-        local = LocalAIProvider()
-        return local.extract_grievance(text, language)
+        """Extract structured grievance fields via Sarvam-M chat completion.
+
+        Sends the grievance text to Sarvam-M with a structured-extraction
+        system prompt asking for JSON output.  On any failure (malformed
+        JSON, hallucinated enums, etc.) a ``SarvamError`` is raised so the
+        ``FallbackAIProvider`` delegates to ``LocalAIProvider``.
+        """
+        from app.services.extraction import (
+            CATEGORY_KEYWORDS,
+            CATEGORY_TO_DEPARTMENT,
+        )
+
+        settings = get_settings()
+
+        # ── allowed enumerations ──────────────────────────────────
+
+        categories = sorted(CATEGORY_KEYWORDS.keys())  # e.g. ["electricity", "health", ...]
+        departments = sorted(set(CATEGORY_TO_DEPARTMENT.values()))
+        # e.g. ["agriculture_department", "anti_corruption", ...]
+        urgencies = ["low", "medium", "high", "critical"]
+
+        # ── system prompt ────────────────────────────────────────
+
+        system_prompt = (
+            "You extract structured fields from an Indian civic grievance.\n"
+            "Return ONLY valid JSON — no markdown, no explanation, no backticks.\n\n"
+            "Keys: category, department, urgency, ward, landmark, summary.\n"
+            "- category: one of {categories}\n"
+            "- department: one of {departments}\n"
+            "- urgency: one of {urgencies}\n"
+            "- ward: digit string if present in text, otherwise empty string\n"
+            "- landmark: free text if a named landmark appears, otherwise empty string\n"
+            "- summary: ≤120 characters, in the source language\n\n"
+            "Do not invent ward numbers, landmarks, or facts not in the input.\n"
+            "If you cannot determine a field, use the empty string for strings\n"
+            "and the most neutral enum value for enums.\n"
+        ).format(
+            categories=", ".join(categories),
+            departments=", ".join(departments),
+            urgencies=", ".join(urgencies),
+        )
+
+        # ── user prompt ──────────────────────────────────────────
+
+        user_prompt = f"Language: {language}\nGrievance: {text}"
+
+        # ── chat completion ──────────────────────────────────────
+
+        payload: Dict = {
+            "model": settings.sarvam_chat_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.1,
+            "reasoning_effort": None,
+        }
+
+        response = self._client.post_json("/v1/chat/completions", payload)
+
+        # ── extract response text ────────────────────────────────
+
+        try:
+            raw = response["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise SarvamError("Unexpected chat completion response shape") from exc
+
+        if not isinstance(raw, str) or not raw.strip():
+            raise SarvamError("Chat completion response empty or not a string")
+
+        # ── parse JSON (try {…} extraction first, then raw) ─────
+
+        import re as _re
+
+        parsed: Dict = {}
+        match = _re.search(r"\{.*\}", raw, _re.DOTALL)
+        json_candidate = match.group(0) if match else raw
+        try:
+            parsed = json.loads(json_candidate)
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise SarvamError(
+                f"Failed to parse extraction JSON: {exc}"
+            ) from exc
+
+        if not isinstance(parsed, dict):
+            raise SarvamError("Extraction JSON is not an object")
+
+        # ── guardrail: whitelist enum fields ─────────────────────
+
+        category = str(parsed.get("category", "")).strip()
+        if category not in CATEGORY_KEYWORDS:
+            category = "other"
+
+        department = str(parsed.get("department", "")).strip()
+        if department not in CATEGORY_TO_DEPARTMENT.values():
+            department = ""
+
+        urgency_raw = str(parsed.get("urgency", "")).strip().lower()
+        urgency = urgency_raw if urgency_raw in urgencies else "medium"
+
+        ward = str(parsed.get("ward", "")).strip()
+        # Keep only digits; cap at 3 chars
+        ward = "".join(ch for ch in ward if ch.isdigit())[:3]
+
+        landmark = str(parsed.get("landmark", "")).strip()[:120]
+        summary = str(parsed.get("summary", "")).strip()[:120]
+
+        # ── guardrail: PII leak check ────────────────────────────
+
+        self._check_pii_leak(summary)
+        self._check_pii_leak(landmark)
+
+        # ── build result ─────────────────────────────────────────
+
+        normalized_text = " ".join(text.split())
+        result = ExtractionResult(
+            category=category,
+            department=department,
+            urgency=urgency,
+            ward=ward,
+            landmark=landmark,
+            language=language,
+            normalized_text=normalized_text,
+            pii_redacted_text="",  # filled by the caller (route / pipeline)
+        )
+        return result
 
     # ── synthesize_speech ───────────────────────────────────────
 
