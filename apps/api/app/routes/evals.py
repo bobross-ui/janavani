@@ -162,6 +162,7 @@ def get_latest_report() -> JSONResponse:
             detail=(
                 "No eval report yet. Run: bhasha-test evaluate "
                 "data/eval_cases/grievance_cases.yaml "
+                "--target http://localhost:8000 "
                 "--output data/eval_reports/latest.json"
             ),
         )

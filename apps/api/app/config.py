@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     allow_provider_override: bool = False
     clustering_pivot_language: str = "en"
     audio_storage_dir: str = "data/audio"
+    eval_report_path: str = "data/eval_reports/latest.json"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

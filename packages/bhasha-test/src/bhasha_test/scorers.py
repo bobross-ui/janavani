@@ -88,6 +88,9 @@ def compute_draft_faithfulness(draft: str | None, sources: Sequence[str]) -> flo
     for src in sources:
         source_contacts.update(_extract_contacts(src))
 
+    if not source_contacts:
+        return 0.0  # draft has contacts but no sources support them
+
     supported = draft_contacts & source_contacts
     return len(supported) / len(draft_contacts)
 
