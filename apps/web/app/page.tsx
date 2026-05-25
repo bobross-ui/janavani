@@ -51,6 +51,16 @@ export default function PublicDashboardPage() {
 
       {!loading && !error ? (
         <>
+          {clusters.length === 0 ? (
+            <section className="panel">
+              <p className="muted">
+                No issue clusters yet. Run <code>make demo</code> from the
+                project root to seed sample data with four clusters across
+                Wards 2, 4, 8, and 11.
+              </p>
+            </section>
+          ) : (
+            <>
           <StatsStrip clusters={clusters} />
 
           <section className="filters" aria-label="Cluster filters">
@@ -72,6 +82,8 @@ export default function PublicDashboardPage() {
           </section>
 
           {filtered.length === 0 ? <p className="muted">No clusters match those filters.</p> : null}
+          </>
+        )}
         </>
       ) : null}
     </>

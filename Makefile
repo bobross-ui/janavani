@@ -1,4 +1,4 @@
-.PHONY: api-test mobile-dev web-dev up down api-dev bhasha-test
+.PHONY: api-test mobile-dev web-dev up down api-dev bhasha-test demo
 
 api-test:
 	cd apps/api && . .venv/bin/activate && pytest -q
@@ -20,3 +20,16 @@ up:
 
 down:
 	docker compose down
+
+demo:
+	docker compose up --build -d postgres redis api web seed
+	@echo "Waiting for API health check..."
+	@n=0; while [ $$n -lt 30 ]; do \
+		curl -sf http://localhost:8000/health > /dev/null 2>&1 && break; \
+		sleep 2; n=$$((n+1)); \
+	done
+	@echo ""
+	@echo " Dashboard:  http://localhost:3000"
+	@echo " API:        http://localhost:8000"
+	@echo " API docs:   http://localhost:8000/docs"
+	@echo ""
