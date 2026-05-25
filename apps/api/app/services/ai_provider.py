@@ -543,19 +543,31 @@ class SarvamAIProvider:
         if not isinstance(raw, str) or not raw.strip():
             raise SarvamError("Chat completion response empty or not a string")
 
-        # ── parse JSON (try {…} extraction first, then raw) ─────
-
-        import re as _re
+        # ── parse JSON (try first JSON object, then raw) ────────
 
         parsed: Dict = {}
-        match = _re.search(r"\{.*\}", raw, _re.DOTALL)
-        json_candidate = match.group(0) if match else raw
+        # Strip common markdown fences first
+        candidate = raw.strip()
+        for fence in ("```json", "```"):
+            if candidate.startswith(fence):
+                candidate = candidate[len(fence):].strip()
+            if candidate.endswith("```"):
+                candidate = candidate[:-3].strip()
+
+        # Try json.JSONDecoder to grab the first valid JSON object
+        decoder = json.JSONDecoder()
         try:
-            parsed = json.loads(json_candidate)
-        except (json.JSONDecodeError, ValueError) as exc:
-            raise SarvamError(
-                f"Failed to parse extraction JSON: {exc}"
-            ) from exc
+            parsed, _ = decoder.raw_decode(candidate)
+        except (json.JSONDecodeError, ValueError):
+            # Fall back to regex {…} extraction
+            match = re.search(r"\{.*\}", candidate, re.DOTALL)
+            json_candidate = match.group(0) if match else candidate
+            try:
+                parsed = json.loads(json_candidate)
+            except (json.JSONDecodeError, ValueError) as exc:
+                raise SarvamError(
+                    f"Failed to parse extraction JSON: {exc}"
+                ) from exc
 
         if not isinstance(parsed, dict):
             raise SarvamError("Extraction JSON is not an object")
@@ -586,8 +598,11 @@ class SarvamAIProvider:
         self._check_pii_leak(landmark)
 
         # ── build result ─────────────────────────────────────────
+        # Use the model-generated summary as normalized_text, falling
+        # back to whitespace-collapsed input when summary is empty.
+        normalized_text = summary if summary.strip() else " ".join(text.split())
+        self._check_pii_leak(normalized_text)
 
-        normalized_text = " ".join(text.split())
         result = ExtractionResult(
             category=category,
             department=department,

@@ -961,10 +961,12 @@ class TestExtractGrievance:
         monkeypatch.setattr(mod, "get_settings", lambda: test_settings)
 
         fake_client = FakeSarvamClient(response=mock_response)
-        try:
-            return SarvamAIProvider(client=fake_client)
-        finally:
-            monkeypatch.undo()
+        provider = SarvamAIProvider(client=fake_client)
+        # Keep monkeypatch alive for the test duration so
+        # extract_grievance()'s runtime get_settings() calls see
+        # the test settings (e.g. sarvam_chat_model).
+        provider._test_monkeypatch = monkeypatch  # type: ignore[attr-defined]
+        return provider
 
     @staticmethod
     def _extraction_json(**overrides: Any) -> str:
@@ -1148,7 +1150,7 @@ class TestExtractGrievance:
     # ── length capping ─────────────────────────────────────────
 
     def test_summary_capped_at_120_chars(self):
-        """Summary longer than 120 chars → truncated."""
+        """Summary longer than 120 chars → truncated in normalized_text."""
         long_summary = "x" * 200
         provider = self._make_provider(
             mock_response=_chat_response(
@@ -1156,9 +1158,8 @@ class TestExtractGrievance:
             ),
         )
         result = provider.extract_grievance("test", "hi-Latn")
-        assert len(result.landmark) <= 120  # landmark also capped
-        # summary is returned inside ExtractionResult but not directly stored;
-        # verify the cap worked by checking something didn't blow up
+        assert len(result.normalized_text) <= 120
+        assert result.normalized_text == "x" * 120
         assert result.category == "water_supply"
 
     # ── payload verification ────────────────────────────────────
