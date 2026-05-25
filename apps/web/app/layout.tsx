@@ -23,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="nav" aria-label="Main navigation">
               <Link href="/">Public dashboard</Link>
               <Link href="/admin">Admin workflow</Link>
+              <Link href="/evals">Eval reports</Link>
             </nav>
           </header>
           {children}

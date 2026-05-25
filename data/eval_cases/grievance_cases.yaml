@@ -1,0 +1,519 @@
+# Janavani eval fixture — 50 multilingual grievance cases.
+# Used by: bhasha-test evaluate data/eval_cases/grievance_cases.yaml --target ...
+#
+# Distribution:
+#   12 Hindi Devanagari
+#   12 Hinglish romanized
+#    8 Marathi
+#    8 Tamil
+#   10 edge cases
+
+- id: "hi-water-1"
+  text: "वार्ड 8 में तीन दिन से पानी नहीं आ रहा है"
+  language: "hi"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-water-2"
+  text: "हमारे मोहल्ले में पानी की टंकी खाली है, वार्ड 8"
+  language: "hi"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-sanitation-1"
+  text: "वार्ड 11 में कचरा नहीं उठ रहा है, हफ्ते भर से सड़ रहा है"
+  language: "hi"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: "11"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-sanitation-2"
+  text: "वार्ड नंबर 11 की सफाई नहीं हो रही, नाला जाम है"
+  language: "hi"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: "11"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-roads-1"
+  text: "वार्ड 4 की मुख्य सड़क पर बड़ा गड्ढा है, दुर्घटना हो सकती है"
+  language: "hi"
+  expected:
+    category: "roads"
+    department: "public_works"
+    ward: "4"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-roads-2"
+  text: "वार्ड 4 में सड़क टूट गई है, बारिश में कीचड़ हो जाता है"
+  language: "hi"
+  expected:
+    category: "roads"
+    department: "public_works"
+    ward: "4"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-electricity-1"
+  text: "वार्ड 2 में कल से बिजली नहीं आ रही, ट्रांसफार्मर खराब है"
+  language: "hi"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "2"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-electricity-2"
+  text: "वार्ड 2 की स्ट्रीट लाइट तीन दिन से बंद है"
+  language: "hi"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "2"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-ration-1"
+  text: "वार्ड 5 के राशन की दुकान में पिछले महीने से गेहूं नहीं मिला"
+  language: "hi"
+  expected:
+    category: "ration"
+    department: "food_department"
+    ward: "5"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-ration-2"
+  text: "वार्ड 5 पीडीएस दुकान पर चावल खत्म है, पूरा मोहल्ला परेशान"
+  language: "hi"
+  expected:
+    category: "ration"
+    department: "food_department"
+    ward: "5"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-pension-1"
+  text: "वार्ड 7 में विधवा पेंशन तीन महीने से नहीं आई"
+  language: "hi"
+  expected:
+    category: "pension"
+    department: "social_welfare"
+    ward: "7"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hi-pension-2"
+  text: "वार्ड 7 की वृद्धा पेंशन का भुगतान रुका हुआ है"
+  language: "hi"
+  expected:
+    category: "pension"
+    department: "social_welfare"
+    ward: "7"
+  sensitive: []
+  expected_redactions: []
+
+# ── Hinglish (Romanized Hindi) ──
+
+- id: "hing-water-1"
+  text: "ward 8 mein paani nahi aa raha teen din se"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-water-2"
+  text: "paani ka tanker nahi aaya ward 8 mein, supply band hai"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-sanitation-1"
+  text: "kachra nahi uth raha ward 11 mein, hafte se pade hue hai"
+  language: "hi-Latn"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: "11"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-sanitation-2"
+  text: "safai karamchari nahi aate ward 11, nala jam hai"
+  language: "hi-Latn"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: "11"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-roads-1"
+  text: "bada gaddha hai sadak par ward 4 mein, accident ho sakta hai"
+  language: "hi-Latn"
+  expected:
+    category: "roads"
+    department: "public_works"
+    ward: "4"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-roads-2"
+  text: "road broken hai ward 4 mein, footpath bhi nahi hai"
+  language: "hi-Latn"
+  expected:
+    category: "roads"
+    department: "public_works"
+    ward: "4"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-electricity-1"
+  text: "bijli nahi aa rahi ward 2 mein kal se, transformer problem"
+  language: "hi-Latn"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "2"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-electricity-2"
+  text: "street light band hai ward 2 mein teen din se"
+  language: "hi-Latn"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "2"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-ration-1"
+  text: "ration shop mein gehu nahi mila ward 5 mein pichle mahine se"
+  language: "hi-Latn"
+  expected:
+    category: "ration"
+    department: "food_department"
+    ward: "5"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-ration-2"
+  text: "PDS shop pe chawal khatam ward 5, poora mohalla pareshan"
+  language: "hi-Latn"
+  expected:
+    category: "ration"
+    department: "food_department"
+    ward: "5"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-health-1"
+  text: "primary health centre mein doctor nahi hai ward 3 mein"
+  language: "hi-Latn"
+  expected:
+    category: "health"
+    department: "health_department"
+    ward: "3"
+  sensitive: []
+  expected_redactions: []
+
+- id: "hing-pension-1"
+  text: "vidhwa pension nahi mili teen mahine se ward 7 mein"
+  language: "hi-Latn"
+  expected:
+    category: "pension"
+    department: "social_welfare"
+    ward: "7"
+  sensitive: []
+  expected_redactions: []
+
+# ── Marathi ──
+
+- id: "mr-sanitation-1"
+  text: "वार्ड 11 मध्ये कचरा उचलला जात नाही, आठवडाभर सडत आहे"
+  language: "mr"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: "11"
+  sensitive: []
+  expected_redactions: []
+
+- id: "mr-sanitation-2"
+  text: "वार्ड 11 मध्ये सफाई कर्मचारी येत नाहीत, गटार भरले आहे"
+  language: "mr"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: "11"
+  sensitive: []
+  expected_redactions: []
+
+- id: "mr-roads-1"
+  text: "वार्ड 4 च्या रस्त्यावर मोठा खड्डा आहे, अपघात होऊ शकतो"
+  language: "mr"
+  expected:
+    category: "roads"
+    department: "public_works"
+    ward: "4"
+  sensitive: []
+  expected_redactions: []
+
+- id: "mr-roads-2"
+  text: "वार्ड 4 मध्ये रस्ता तुटला आहे, पावसात चिखल होतो"
+  language: "mr"
+  expected:
+    category: "roads"
+    department: "public_works"
+    ward: "4"
+  sensitive: []
+  expected_redactions: []
+
+- id: "mr-water-1"
+  text: "वार्ड 8 मध्ये तीन दिवसांपासून पाणी आले नाही, टाकी रिकामी"
+  language: "mr"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "mr-water-2"
+  text: "वार्ड 8 मध्ये पाण्याचा टँकर आला नाही, नळ सुकले आहेत"
+  language: "mr"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "mr-electricity-1"
+  text: "वार्ड 2 मध्ये कालपासून वीज नाही, ट्रान्सफॉर्मर बिघडला"
+  language: "mr"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "2"
+  sensitive: []
+  expected_redactions: []
+
+- id: "mr-health-1"
+  text: "वार्ड 3 च्या दवाखान्यात डॉक्टर नाही, औषधे संपली"
+  language: "mr"
+  expected:
+    category: "health"
+    department: "health_department"
+    ward: "3"
+  sensitive: []
+  expected_redactions: []
+
+# ── Tamil ──
+
+- id: "ta-water-1"
+  text: "வார்டு 8ல் மூன்று நாட்களாக தண்ணீர் வரவில்லை"
+  language: "ta"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "ta-water-2"
+  text: "வார்டு 8ல் குடிநீர் விநியோகம் நிறுத்தப்பட்டுள்ளது, டேங்கர் வரவில்லை"
+  language: "ta"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "ta-electricity-1"
+  text: "வார்டு 2ல் நேற்றிலிருந்து மின்சாரம் இல்லை, டிரான்ஸ்பார்மர் பழுது"
+  language: "ta"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "2"
+  sensitive: []
+  expected_redactions: []
+
+- id: "ta-electricity-2"
+  text: "வார்டு 2ல் தெரு விளக்கு மூன்று நாட்களாக எரியவில்லை"
+  language: "ta"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "2"
+  sensitive: []
+  expected_redactions: []
+
+- id: "ta-ration-1"
+  text: "வார்டு 5 ரேஷன் கடையில் கோதுமை கிடைக்கவில்லை, கடந்த மாதத்திலிருந்து"
+  language: "ta"
+  expected:
+    category: "ration"
+    department: "food_department"
+    ward: "5"
+  sensitive: []
+  expected_redactions: []
+
+- id: "ta-ration-2"
+  text: "வார்டு 5ல் பொது விநியோக கடையில் அரிசி தீர்ந்துவிட்டது"
+  language: "ta"
+  expected:
+    category: "ration"
+    department: "food_department"
+    ward: "5"
+  sensitive: []
+  expected_redactions: []
+
+- id: "ta-roads-1"
+  text: "வார்டு 4 சாலையில் பெரிய குழி உள்ளது, விபத்து ஏற்படலாம்"
+  language: "ta"
+  expected:
+    category: "roads"
+    department: "public_works"
+    ward: "4"
+  sensitive: []
+  expected_redactions: []
+
+- id: "ta-sanitation-1"
+  text: "வார்டு 11ல் குப்பை அகற்றப்படவில்லை, ஒரு வாரமாக அழுகுகிறது"
+  language: "ta"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: "11"
+  sensitive: []
+  expected_redactions: []
+
+# ── Edge cases ──
+
+- id: "edge-missing-ward"
+  text: "hamare ilake mein paani ki bahut samasya hai, tanker bhejo"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: ""
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-landmark-only"
+  text: "near LB Nagar metro station ke paas drainage overflow ho raha hai"
+  language: "hi-Latn"
+  expected:
+    category: "sanitation"
+    department: "sanitation_department"
+    ward: ""
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-codemix"
+  text: "ward 8 में water की bahut problem hai, pipes leak ho rahi hain"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-angry-1"
+  text: "ABHI TAK PAANI NAHI AAYA WARD 8!!! TEEN DIN HO GAYE KOI SUNTA HI NAHI HAI"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-emotional"
+  text: "hamare bachche pyaase hain, tanker bhejo please ward 8"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-near-duplicate"
+  text: "paani ki supply puri tarah band hai ward 8 mein, tanker bhi nahi aata"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-should-not-cluster"
+  text: "ward 8 aurangzeb road pe building number 47 ke saamne paani ka leakage"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-pii-heavy"
+  text: "mera naam Ramesh hai mera phone 9876543210 hai ward 5 mein bijli nahi aa rahi"
+  language: "hi-Latn"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "5"
+  sensitive:
+    - "9876543210"
+  expected_redactions:
+    - "[PHONE_REDACTED]"
+
+- id: "edge-ambiguous"
+  text: "ward 6 mein school ke paas sadak par light nahi hai"
+  language: "hi-Latn"
+  expected:
+    category: "electricity"
+    department: "electricity_department"
+    ward: "6"
+  sensitive: []
+  expected_redactions: []
+
+- id: "edge-short"
+  text: "paani ward 8"
+  language: "hi-Latn"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []

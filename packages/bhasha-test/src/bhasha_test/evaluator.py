@@ -148,7 +148,7 @@ def evaluate_cases(cases: Sequence[Mapping[str, Any]], provider: ExtractionProvi
     redaction_safety = redaction_passes / len(cases)
     overall_score = (extraction_score + redaction_safety) / 2
 
-    return {
+    report: dict[str, Any] = {
         "summary": {
             "total_cases": len(cases),
             "passed_cases": sum(1 for result in results if result["passed"]),
@@ -159,3 +159,36 @@ def evaluate_cases(cases: Sequence[Mapping[str, Any]], provider: ExtractionProvi
         },
         "cases": results,
     }
+    return report
+
+
+def attach_scorer_results(
+    report: dict[str, Any],
+    *,
+    wer_scores: list[float] | None = None,
+    draft_scores: list[float] | None = None,
+    latency_ms: list[float] | None = None,
+) -> dict[str, Any]:
+    """Attach WER, draft-faithfulness, and latency scores to an eval report.
+
+    Callers that have access to audio transcription or draft generation
+    can populate these extra metrics after the core extraction eval.
+    """
+    from .scorers import mean, p95
+
+    extra: dict[str, Any] = {}
+    if wer_scores:
+        extra["wer_mean"] = mean(wer_scores)
+        extra["wer_p95"] = p95(wer_scores)
+
+    if draft_scores:
+        extra["draft_faithfulness_mean"] = mean(draft_scores)
+
+    if latency_ms:
+        extra["latency_mean_ms"] = mean(latency_ms)
+        extra["latency_p95_ms"] = p95(latency_ms)
+
+    if extra:
+        report["summary"]["scorer_metrics"] = extra
+
+    return report

@@ -1,146 +1,127 @@
+"""Additional scorers for bhasha-test — WER, draft faithfulness, latency."""
+
 from __future__ import annotations
 
 import math
 import re
-from typing import Optional, Sequence
+from typing import Sequence
 
 
-# ── 1. Word Error Rate ──────────────────────────────────────────────────────
-
-def _levenshtein_distance(a: list[str], b: list[str]) -> int:
-    """Compute Levenshtein edit distance between two token sequences."""
-    n, m = len(a), len(b)
-    # Use two-row optimisation (O(n*m) time, O(m) space).
-    prev = list(range(m + 1))
-    curr = [0] * (m + 1)
-    for i in range(1, n + 1):
-        curr[0] = i
-        for j in range(1, m + 1):
-            cost = 0 if a[i - 1] == b[j - 1] else 1
-            curr[j] = min(
-                prev[j] + 1,        # deletion
-                curr[j - 1] + 1,    # insertion
-                prev[j - 1] + cost, # substitution
-            )
-        prev, curr = curr, prev
-    return prev[m]
+def _tokenize(text: str) -> list[str]:
+    return text.strip().lower().split()
 
 
-def _simple_wer(reference: str, hypothesis: str) -> float:
-    """Word Error Rate using manual Levenshtein on whitespace-tokenised words."""
-    ref_tokens = reference.strip().split()
-    hyp_tokens = hypothesis.strip().split()
-
-    # Both empty → perfect match.
-    if not ref_tokens and not hyp_tokens:
-        return 0.0
-    # Reference has words but hypothesis is empty → all deletions = 100% error.
-    if not hyp_tokens:
-        return 1.0
-    # Hypothesis has words but reference is empty → all insertions.
-    if not ref_tokens:
-        return 1.0
-
-    distance = _levenshtein_distance(ref_tokens, hyp_tokens)
-    return distance / len(ref_tokens)
+# ── Word Error Rate (WER) ─────────────────────────────────────────────
 
 
 def compute_wer(reference: str, hypothesis: str) -> float:
-    """Compute Word Error Rate between *reference* and *hypothesis*.
+    """Compute word error rate between reference and hypothesis transcripts.
 
-    If the ``jiwer`` library is available it is used directly; otherwise a
-    simple token-based WER is computed via Levenshtein distance on word
-    tokens.  Both empty strings yield 0.0.
-
-    Parameters
-    ----------
-    reference : str
-        Ground-truth transcription.
-    hypothesis : str
-        System-generated transcription.
-
-    Returns
-    -------
-    float
-        WER value.  Lower is better.  May exceed 1.0 on very poor matches.
+    WER = (substitutions + deletions + insertions) / reference_word_count.
+    Returns 0.0 for perfect match; 1.0 if reference is empty and hypothesis
+    is non-empty.
     """
-    try:
-        import jiwer  # type: ignore
-        return jiwer.wer(reference, hypothesis)
-    except ImportError:
-        return _simple_wer(reference, hypothesis)
+    ref = _tokenize(reference)
+    hyp = _tokenize(hypothesis)
+
+    if not ref and not hyp:
+        return 0.0
+    if not ref:
+        return 1.0
+    if not hyp:
+        return 1.0
+
+    n, m = len(ref), len(hyp)
+    dp: list[list[int]] = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(n + 1):
+        dp[i][0] = i
+    for j in range(m + 1):
+        dp[0][j] = j
+
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            cost = 0 if ref[i - 1] == hyp[j - 1] else 1
+            dp[i][j] = min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost,
+            )
+
+    return dp[n][m] / n
 
 
-# ── 2. Draft Faithfulness (hallucinated contact info) ───────────────────────
+# ── Draft Faithfulness ────────────────────────────────────────────────
 
-_PHONE_RE = re.compile(r"\b\d{10}\b")
+# Patterns for contact info extraction
+_PHONE_RE = re.compile(r"\b\d{10,}\b")
 _EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b")
 
 
 def _extract_contacts(text: str) -> set[str]:
-    """Return the set of phone numbers and email addresses found in *text*."""
-    phones = set(_PHONE_RE.findall(text))
-    emails = set(_EMAIL_RE.findall(text))
-    return phones | emails
+    """Extract phone numbers and email addresses from text."""
+    contacts: set[str] = set()
+    contacts.update(_PHONE_RE.findall(text))
+    contacts.update(_EMAIL_RE.findall(text))
+    return contacts
 
 
-def compute_draft_faithfulness(draft_text: Optional[str], source_texts: list[str]) -> float:
-    """Score how faithful a draft is to its source materials (0.0 – 1.0).
+def compute_draft_faithfulness(draft: str | None, sources: Sequence[str]) -> float:
+    """Score how faithful a generated draft is to its source grievances.
 
-    Extracts 10-digit phone numbers and email addresses from the draft.
-    Any contact detail found in the draft that does **not** appear anywhere
-    in *source_texts* is treated as a hallucination.
+    Extracts phone numbers and emails from the draft and from all source
+    texts. A contact in the draft that does not appear in any source is
+    considered unsupported (hallucinated).
 
-    Parameters
-    ----------
-    draft_text : str
-        The generated draft text (may be ``None`` or empty).
-    source_texts : list[str]
-        Original source texts the draft was generated from.
-
-    Returns
-    -------
-    float
-        1.0 = every contact detail in the draft is backed by a source.
-        0.0 = draft is empty / ``None``, or every contact detail is
-              unsupported.
+    Returns a score in [0.0, 1.0]:
+      1.0 = all contacts in draft are supported by sources.
+      0.0 = every contact in draft is unsupported.
     """
-    if not draft_text:
+    if not draft or not sources:
         return 0.0
 
-    draft_contacts = _extract_contacts(str(draft_text))
+    draft_contacts = _extract_contacts(draft)
     if not draft_contacts:
-        return 1.0  # Nothing to check → perfectly faithful.
+        return 1.0  # no contacts to hallucinate → perfect
 
     source_contacts: set[str] = set()
-    for src in source_texts:
-        source_contacts |= _extract_contacts(str(src))
+    for src in sources:
+        source_contacts.update(_extract_contacts(src))
 
     supported = draft_contacts & source_contacts
     return len(supported) / len(draft_contacts)
 
 
-# ── 3. 95th Percentile Latency ──────────────────────────────────────────────
+# ── Latency ───────────────────────────────────────────────────────────
 
-def compute_p95_latency(latencies_ms: Sequence[float]) -> float:
-    """Return the 95th-percentile latency in milliseconds.
 
-    Parameters
-    ----------
-    latencies_ms : list[float]
-        List of latency measurements (ms).
-
-    Returns
-    -------
-    float
-        95th percentile.  Empty list returns 0.0.
-    """
-    if not latencies_ms:
+def compute_p95_latency(latencies: Sequence[float]) -> float:
+    """Compute the 95th percentile of latency values."""
+    if not latencies:
         return 0.0
+    sorted_vals = sorted(latencies)
+    idx = math.ceil(0.95 * len(sorted_vals)) - 1
+    return sorted_vals[max(0, idx)]
 
-    sorted_latencies = sorted(latencies_ms)
-    n = len(sorted_latencies)
 
-    # Use the "nearest-rank" method: index = ceil(0.95 * n) - 1
-    idx = math.ceil(0.95 * n) - 1
-    return sorted_latencies[idx]
+def wer_score(reference: str, hypothesis: str) -> float:
+    """Alias for compute_wer — used by evaluator integration."""
+    return compute_wer(reference, hypothesis)
+
+
+def draft_faithfulness_score(
+    draft: str, grievance_text: str, expected_keywords: Sequence[str] | None = None
+) -> float:
+    """Convenience wrapper for compute_draft_faithfulness with keyword support."""
+    return compute_draft_faithfulness(draft, [grievance_text])
+
+
+def p95(values: Sequence[float]) -> float:
+    """Alias for compute_p95_latency."""
+    return compute_p95_latency(values)
+
+
+def mean(values: Sequence[float]) -> float:
+    """Compute arithmetic mean."""
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
