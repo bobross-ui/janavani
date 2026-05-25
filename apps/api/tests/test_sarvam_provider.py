@@ -24,7 +24,9 @@ class FakeSarvamClient:
         self.calls.append((path, payload))
         return self._response
 
-    def post_audio_bytes(self, path: str, audio_bytes: bytes, model: str, language: str) -> dict:
+    def post_audio_bytes(
+        self, path: str, audio_bytes: bytes, model: str, language: Optional[str]
+    ) -> dict:
         self.calls.append((path, audio_bytes, model, language))
         return self._response
 
@@ -753,8 +755,8 @@ class TestTranscribeAudioTranslate:
 
     # ── endpoint verification ───────────────────────────────────
 
-    def test_transcribe_audio_translate_calls_stt_translate_endpoint(self):
-        """Verify /speech-to-text-translate path, model, language, audio_bytes."""
+    def test_transcribe_audio_translate_calls_stt_translate_endpoint_without_language_code(self):
+        """Verify /speech-to-text-translate path, model, and audio_bytes; language is omitted for auto-detect."""
         provider = self._make_provider(mock_response=_stt_response())
         audio = b"dummy audio content"
         provider.transcribe_audio_translate(audio, target_language="en-IN")
@@ -764,17 +766,17 @@ class TestTranscribeAudioTranslate:
         assert call[0] == "/speech-to-text-translate"
         assert call[1] == audio
         assert call[2] == "saaras:v2.5"
-        assert call[3] == "en-IN"
+        assert call[3] is None
 
     # ── defaults ────────────────────────────────────────────────
 
-    def test_transcribe_audio_translate_defaults_target_language(self):
-        """Default target_language is 'en-IN' when not provided."""
+    def test_transcribe_audio_translate_omits_language_code_for_auto_detect(self):
+        """Default STT-translate omits language_code so Sarvam auto-detects speech."""
         provider = self._make_provider(mock_response=_stt_response())
         provider.transcribe_audio_translate(b"audio")
         fake = provider.client
         _, _, _, language = fake.calls[0]
-        assert language == "en-IN"
+        assert language is None
 
     # ── size validation ─────────────────────────────────────────
 

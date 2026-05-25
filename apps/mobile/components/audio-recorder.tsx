@@ -143,7 +143,7 @@ export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
           <View style={styles.info}>
             <Text style={styles.title}>Voice grievance</Text>
             <Text style={styles.subtitle}>
-              Tap the mic to record — speak in Hindi, Marathi or Tamil.
+              Tap the mic to record — no language selection needed.
             </Text>
           </View>
         </>

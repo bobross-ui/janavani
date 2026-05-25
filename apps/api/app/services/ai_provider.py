@@ -387,7 +387,7 @@ class SarvamAIProvider:
         # ── API call ───────────────────────────────────────────
         response = self._client.post_audio_bytes(
             "/speech-to-text-translate", audio_bytes,
-            model=model, language=target_language,
+            model=model, language=None,
         )
 
         # ── extract and validate ───────────────────────────────

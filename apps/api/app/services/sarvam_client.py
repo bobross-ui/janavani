@@ -68,14 +68,17 @@ class SarvamClient:
             request_kwargs={"files": files, "data": data},
         )
 
-    def post_audio_bytes(self, path: str, audio_bytes: bytes, model: str, language: str) -> dict:
+    def post_audio_bytes(
+        self, path: str, audio_bytes: bytes, model: str, language: Optional[str] = None
+    ) -> dict:
         files = {
             "file": ("audio.wav", audio_bytes, "application/octet-stream"),
         }
         data = {
             "model": model,
-            "language_code": language,
         }
+        if language:
+            data["language_code"] = language
         return self._post(
             path=path,
             model=model,

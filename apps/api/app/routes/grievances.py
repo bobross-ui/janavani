@@ -163,14 +163,12 @@ _ALLOWED_AUDIO_MIME_TYPES = {
 def submit_audio_grievance(
     audio: UploadFile = File(...),
     user_id: str = Form(...),
-    language: str = Form(default="hi-IN"),
+    language: str = Form(default=""),
     consent_public: bool = Form(default=True),
     provider: AIProvider = Depends(get_request_ai_provider),
     storage: AudioStorage = Depends(get_audio_storage),
     session: Session = Depends(get_session),
 ) -> GrievanceResponse:
-    settings = get_settings()
-
     # 1. Validate audio
     if audio.content_type not in _ALLOWED_AUDIO_MIME_TYPES:
         raise HTTPException(
@@ -192,36 +190,27 @@ def submit_audio_grievance(
     # 3. Persist via AudioStorage.save_audio → audio_key
     audio_key = storage.save_audio(audio_bytes, audio.content_type)
 
-    # 4. Call provider.transcribe_audio → TranscriptionResult
+    # 4. Call provider.transcribe_audio_translate → English transcript.
+    # Sarvam's STT-translate endpoint auto-detects the spoken language, so the
+    # mobile voice path does not need a pre-recording language picker.
     try:
-        transcription = provider.transcribe_audio(audio_bytes, language)
+        transcription = provider.transcribe_audio_translate(audio_bytes)
     except SarvamError as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Speech-to-text transcription failed: {exc}",
+            detail=f"Speech-to-text translation failed: {exc}",
         )
 
     transcript = transcription.transcript
+    detected_language = transcription.detected_language or "unknown"
 
-    # 5. Run existing extraction pipeline
+    # 5. Run existing extraction pipeline on the English transcript returned by
+    # STT-translate. Store detected_language separately on the grievance record.
     extraction: ExtractionResult = provider.extract_grievance(
-        transcript, language
+        transcript, "en-IN"
     )
 
-    # 6. Translate to pivot if needed
-    pivot_language = settings.clustering_pivot_language
-    if (
-        extraction.language
-        and extraction.language != pivot_language
-        and extraction.normalized_text
-    ):
-        extraction.normalized_text = provider.translate_text(
-            extraction.normalized_text,
-            pivot_language,
-            source_language=extraction.language,
-        )
-
-    # 7. Check for matching cluster
+    # 6. Check for matching cluster
     matched = find_matching_cluster(session, extraction)
     action = "join_cluster" if matched else "create_cluster"
 
@@ -231,7 +220,7 @@ def submit_audio_grievance(
         raw_text=transcript,
         transcript_text=transcript,
         normalized_text=extraction.normalized_text,
-        language=extraction.language,
+        language=detected_language,
         issue_category=extraction.category,
         department=extraction.department,
         urgency=extraction.urgency,

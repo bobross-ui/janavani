@@ -50,7 +50,6 @@ export default function SubmitScreen() {
         name: "recording.m4a",
       } as any);
       formData.append("user_id", MOCK_USER_ID);
-      formData.append("language", language);
       formData.append("consent_public", "true");
 
       const res = await uploadAudioGrievance(formData);

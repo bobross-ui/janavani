@@ -92,8 +92,10 @@ class _MockTranscribeProvider:
         self._detected_language = detected_language
         self._confidence = confidence
         self.transcribe_called = False
+        self.transcribe_translate_called = False
         self.transcribe_audio_bytes = None
         self.transcribe_language = None
+        self.transcribe_translate_target_language = None
 
     def transcribe_audio(
         self,
@@ -104,6 +106,21 @@ class _MockTranscribeProvider:
         self.transcribe_called = True
         self.transcribe_audio_bytes = audio_bytes
         self.transcribe_language = language_code
+        return TranscriptionResult(
+            transcript=self._transcript,
+            detected_language=self._detected_language,
+            confidence=self._confidence,
+        )
+
+    def transcribe_audio_translate(
+        self,
+        audio_bytes: bytes,
+        target_language: str = "en-IN",
+        model: str = None,
+    ) -> TranscriptionResult:
+        self.transcribe_translate_called = True
+        self.transcribe_audio_bytes = audio_bytes
+        self.transcribe_translate_target_language = target_language
         return TranscriptionResult(
             transcript=self._transcript,
             detected_language=self._detected_language,
@@ -134,6 +151,9 @@ class _ErrorTranscribeProvider:
 
     def transcribe_audio(self, *args, **kwargs) -> TranscriptionResult:
         raise SarvamError("STT service unavailable")
+
+    def transcribe_audio_translate(self, *args, **kwargs) -> TranscriptionResult:
+        raise SarvamError("STT translate service unavailable")
 
     def translate_text(self, *args, **kwargs) -> str:
         return args[0]
@@ -273,8 +293,8 @@ class TestAudioEndpoint:
 
     # ── test 3: transcription → extraction pipeline ───────────────
 
-    def test_audio_submission_transcribes_and_extracts(self):
-        """Verify provider.transcribe_audio called, then extract_grievance on transcript."""
+    def test_audio_submission_translates_and_extracts(self):
+        """Verify provider.transcribe_audio_translate called, then extraction runs on transcript."""
         session = self._session()
         user = _seed_user(session)
 
@@ -299,9 +319,10 @@ class TestAudioEndpoint:
         assert resp.status_code == 200, resp.text
         data = resp.json()
 
-        # transcribe_audio was called
-        assert mock_provider.transcribe_called
-        assert mock_provider.transcribe_language == "hi-IN"
+        # transcribe_audio_translate was called; the legacy language form field is ignored.
+        assert mock_provider.transcribe_translate_called
+        assert not mock_provider.transcribe_called
+        assert mock_provider.transcribe_translate_target_language == "en-IN"
         assert mock_provider.transcribe_audio_bytes is not None
 
         # raw_text in grievance = transcript
@@ -309,6 +330,41 @@ class TestAudioEndpoint:
 
         # extraction ran on the transcript
         assert data["extraction"]["category"] == "water_supply"
+
+    def test_audio_submission_auto_detects_and_translates_without_language_selection(self):
+        """Voice uploads should not require user language selection.
+
+        The backend should use STT-translate so Sarvam auto-detects the spoken
+        language and returns an English transcript for extraction.
+        """
+        session = self._session()
+        user = _seed_user(session)
+
+        mock_provider = _MockTranscribeProvider(
+            transcript="There has been no water in ward 8 for four days",
+            detected_language="mr-IN",
+            confidence=0.91,
+        )
+        mock_storage = _MockAudioStorage()
+        _install_mocks(mock_provider, mock_storage)
+
+        resp = self.client.post(
+            "/grievances/audio",
+            files={"audio": ("test.wav", BytesIO(_fake_audio_bytes()), "audio/wav")},
+            data={
+                "user_id": user.id,
+                "consent_public": "true",
+            },
+        )
+
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert mock_provider.transcribe_translate_called
+        assert not mock_provider.transcribe_called
+        assert data["grievance"]["raw_text"] == "There has been no water in ward 8 for four days"
+        assert data["grievance"]["language"] == "mr-IN"
+        assert data["grievance"]["issue_category"] == "water_supply"
+        assert data["grievance"]["ward"] == "8"
 
     # ── test 4: missing audio file → 422 ─────────────────────────
 
