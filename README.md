@@ -29,7 +29,7 @@ It is not another grievance portal. It is an intelligence layer that can sit abo
 ## Quick start
 
 ```bash
-git clone git@github.com:bobross-ui/janavani.git
+git clone https://github.com/bobross-ui/janavani.git
 cd janavani
 make demo        # starts everything, seeds demo data
 # open http://localhost:3000 — 4 issue clusters across Wards 2/4/8/11

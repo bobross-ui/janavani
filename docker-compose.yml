@@ -47,8 +47,8 @@ services:
       redis:
         condition: service_started
 
-  # One-shot seeder: populates demo data on first start.
-  # Disable with JANAVANI_AUTOSEED=false in .env or environment.
+  # One-shot seeder: populates demo data. Runs after API is healthy and
+  # tables exist. Set JANAVANI_AUTOSEED=false to skip (container checks env).
   seed:
     build:
       context: .
@@ -56,10 +56,20 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/janavani
       AI_PROVIDER: ${AI_PROVIDER:-local}
+      JANAVANI_AUTOSEED: ${JANAVANI_AUTOSEED:-true}
     depends_on:
       postgres:
         condition: service_healthy
-    entrypoint: ["python", "-m", "app.seed"]
+      api:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        if [ "$$JANAVANI_AUTOSEED" = "true" ]; then
+          python -m app.seed
+        else
+          echo "Auto-seed disabled (JANAVANI_AUTOSEED != true)"
+        fi
 
   web:
     build:

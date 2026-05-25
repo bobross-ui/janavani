@@ -22,12 +22,18 @@ down:
 	docker compose down
 
 demo:
-	docker compose up --build -d postgres redis api web seed
+	docker compose down -v 2>/dev/null; true
+	docker compose up --build -d postgres redis api web
 	@echo "Waiting for API health check..."
 	@n=0; while [ $$n -lt 30 ]; do \
 		curl -sf http://localhost:8000/health > /dev/null 2>&1 && break; \
 		sleep 2; n=$$((n+1)); \
-	done
+	done; \
+	if [ $$n -ge 30 ]; then \
+		echo "ERROR: API did not become healthy within 60s"; exit 1; \
+	fi
+	@echo "API healthy — seeding demo data..."
+	docker compose up --build --exit-code-from seed seed
 	@echo ""
 	@echo " Dashboard:  http://localhost:3000"
 	@echo " API:        http://localhost:8000"

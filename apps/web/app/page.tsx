@@ -54,9 +54,9 @@ export default function PublicDashboardPage() {
           {clusters.length === 0 ? (
             <section className="panel">
               <p className="muted">
-                No issue clusters yet. Run <code>make demo</code> from the
-                project root to seed sample data with four clusters across
-                Wards 2, 4, 8, and 11.
+                No issue clusters yet. If running locally, try{" "}
+                <code>make demo</code> from the project root to seed
+                sample data.
               </p>
             </section>
           ) : (
