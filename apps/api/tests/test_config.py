@@ -90,3 +90,11 @@ def test_sarvam_settings_can_be_overridden_from_env(monkeypatch):
     assert settings.sarvam_max_retries == 4
     assert settings.sarvam_fallback_on_error is False
     assert settings.allow_provider_override is True
+
+
+def test_default_clustering_pivot_language_is_english():
+    """Clustering pivot must be English so text and voice paths
+    produce comparable tokens. A drive-by edit to 'hi' would
+    silently reintroduce the dual-pivot bug."""
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.clustering_pivot_language == "en"

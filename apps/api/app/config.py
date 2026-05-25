@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     sarvam_max_retries: int = 2
     sarvam_fallback_on_error: bool = True
     allow_provider_override: bool = False
-    clustering_pivot_language: str = "hi"
+    clustering_pivot_language: str = "en"
     audio_storage_dir: str = "data/audio"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

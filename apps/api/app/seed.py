@@ -28,41 +28,71 @@ USERS = [
 # ── Demo grievances ───────────────────────────────────────────────────
 
 WATER_GRIEVANCES_WARD8 = [
-    ("हमारे वार्ड 8 में तीन दिन से पानी नहीं आ रहा है", "hi"),
-    ("Ward 8 mein paani supply band hai kal se", "hi-Latn"),
-    ("तीन दिन से नल सूखा है वार्ड 8 में", "hi"),
-    ("ward 8 water nahi aa raha supply problem", "hi-Latn"),
-    ("पानी की टंकी खाली है वार्ड 8", "hi"),
-    ("teen din se paani ki ek boond nahi ward 8", "hi-Latn"),
-    ("वार्ड नंबर 8 में जल आपूर्ति ठप है", "hi"),
-    ("ward number 8 mein nal jal nahi aa raha", "hi-Latn"),
-    ("paani ka tanker nahi aaya ward 8 mein", "hi-Latn"),
-    ("हमारे मोहल्ले में पानी की बहुत समस्या है वार्ड 8", "hi"),
+    # (raw_text, language, english_normalized_text)
+    ("हमारे वार्ड 8 में तीन दिन से पानी नहीं आ रहा है", "hi",
+     "no water supply in ward 8 for three days"),
+    ("Ward 8 mein paani supply band hai kal se", "hi-Latn",
+     "water supply is off in ward 8 since yesterday"),
+    ("तीन दिन से नल सूखा है वार्ड 8 में", "hi",
+     "taps have been dry for three days in ward 8"),
+    ("ward 8 water nahi aa raha supply problem", "hi-Latn",
+     "water not coming supply problem in ward 8"),
+    ("पानी की टंकी खाली है वार्ड 8", "hi",
+     "water tank is empty in ward 8"),
+    ("teen din se paani ki ek boond nahi ward 8", "hi-Latn",
+     "not a single drop of water for three days in ward 8"),
+    ("वार्ड नंबर 8 में जल आपूर्ति ठप है", "hi",
+     "water supply is down in ward number 8"),
+    ("ward number 8 mein nal jal nahi aa raha", "hi-Latn",
+     "tap water not coming in ward number 8"),
+    ("paani ka tanker nahi aaya ward 8 mein", "hi-Latn",
+     "water tanker did not come in ward 8"),
+    ("हमारे मोहल्ले में पानी की बहुत समस्या है वार्ड 8", "hi",
+     "severe water problem in our neighborhood ward 8"),
 ]
 
 GARBAGE_GRIEVANCES_WARD11 = [
-    ("ward 11 mein kachra nahi uth raha hafte se", "hi-Latn"),
-    ("वार्ड 11 में कचरा नहीं उठ रहा है", "hi"),
-    ("garbage collection band hai ward 11 mein", "hi-Latn"),
-    ("कचरे का ढेर लग गया है वार्ड 11", "hi"),
-    ("safai karamchari nahi aate ward 11", "hi-Latn"),
-    ("वार्ड नंबर 11 की सफाई नहीं हो रही", "hi"),
-    ("nala jam hai ward 11 mein", "hi-Latn"),
-    ("गंदगी फैली है वार्ड 11 की गलियों में", "hi"),
+    # (raw_text, language, english_normalized_text)
+    ("ward 11 mein kachra nahi uth raha hafte se", "hi-Latn",
+     "garbage not being collected in ward 11 for a week"),
+    ("वार्ड 11 में कचरा नहीं उठ रहा है", "hi",
+     "garbage is not being picked up in ward 11"),
+    ("garbage collection band hai ward 11 mein", "hi-Latn",
+     "garbage collection is stopped in ward 11"),
+    ("कचरे का ढेर लग गया है वार्ड 11", "hi",
+     "garbage pile has accumulated in ward 11"),
+    ("safai karamchari nahi aate ward 11", "hi-Latn",
+     "cleaning workers do not come to ward 11"),
+    ("वार्ड नंबर 11 की सफाई नहीं हो रही", "hi",
+     "ward number 11 is not being cleaned"),
+    ("nala jam hai ward 11 mein", "hi-Latn",
+     "drain is blocked in ward 11"),
+    ("गंदगी फैली है वार्ड 11 की गलियों में", "hi",
+     "filth is spread in the lanes of ward 11"),
 ]
 
 ROAD_GRIEVANCES_WARD4 = [
-    ("ward 4 mein sadak par bada gaddha hai", "hi-Latn"),
-    ("वार्ड 4 की सड़क टूट गई है", "hi"),
-    ("road broken hai ward 4 mein accident ho sakta", "hi-Latn"),
-    ("footpath nahi hai ward 4 mein", "hi-Latn"),
-    ("वार्ड 4 में सड़क पर बड़ा गड्ढा है", "hi"),
+    # (raw_text, language, english_normalized_text)
+    ("ward 4 mein sadak par bada gaddha hai", "hi-Latn",
+     "big pothole on road in ward 4"),
+    ("वार्ड 4 की सड़क टूट गई है", "hi",
+     "road in ward 4 is broken"),
+    ("road broken hai ward 4 mein accident ho sakta", "hi-Latn",
+     "road is broken in ward 4 accident may happen"),
+    ("footpath nahi hai ward 4 mein", "hi-Latn",
+     "no footpath in ward 4"),
+    ("वार्ड 4 में सड़क पर बड़ा गड्ढा है", "hi",
+     "big pothole on road in ward 4"),
 ]
 
 ELECTRICITY_WARD2 = [
-    ("ward 2 mein kal se bijli nahi aa rahi", "hi-Latn"),
-    ("वार्ड 2 में बिजली की समस्या है", "hi"),
-    ("transformer kharab hai ward 2", "hi-Latn"),
+    # (raw_text, language, english_normalized_text)
+    ("ward 2 mein kal se bijli nahi aa rahi", "hi-Latn",
+     "no electricity in ward 2 since yesterday"),
+    ("वार्ड 2 में बिजली की समस्या है", "hi",
+     "electricity problem in ward 2"),
+    ("transformer kharab hai ward 2", "hi-Latn",
+     "transformer broken in ward 2"),
 ]
 
 
@@ -103,11 +133,11 @@ def seed():
         session.add(water_cluster)
         session.commit()
 
-        for i, (text, lang) in enumerate(WATER_GRIEVANCES_WARD8):
+        for i, (text, lang, norm) in enumerate(WATER_GRIEVANCES_WARD8):
             g = Grievance(
                 user_id=user_objs[i % 5].id,
                 raw_text=text,
-                normalized_text=text,
+                normalized_text=norm,
                 language=lang,
                 issue_category="water_supply",
                 department="water_department",
@@ -136,11 +166,11 @@ def seed():
         session.add(garbage_cluster)
         session.commit()
 
-        for i, (text, lang) in enumerate(GARBAGE_GRIEVANCES_WARD11):
+        for i, (text, lang, norm) in enumerate(GARBAGE_GRIEVANCES_WARD11):
             g = Grievance(
                 user_id=user_objs[5 + i % 3].id,
                 raw_text=text,
-                normalized_text=text,
+                normalized_text=norm,
                 language=lang,
                 issue_category="sanitation",
                 department="sanitation_department",
@@ -171,11 +201,11 @@ def seed():
         session.add(road_cluster)
         session.commit()
 
-        for i, (text, lang) in enumerate(ROAD_GRIEVANCES_WARD4):
+        for i, (text, lang, norm) in enumerate(ROAD_GRIEVANCES_WARD4):
             g = Grievance(
                 user_id=user_objs[8 + i % 2].id,
                 raw_text=text,
-                normalized_text=text,
+                normalized_text=norm,
                 language=lang,
                 issue_category="roads",
                 department="public_works",
@@ -190,11 +220,11 @@ def seed():
         print(f"  Created {len(ROAD_GRIEVANCES_WARD4)} road grievances (Ward 4)")
 
         # Electricity — Ward 2 (ungrouped, to test new cluster creation)
-        for i, (text, lang) in enumerate(ELECTRICITY_WARD2):
+        for i, (text, lang, norm) in enumerate(ELECTRICITY_WARD2):
             g = Grievance(
                 user_id=user_objs[0].id,
                 raw_text=text,
-                normalized_text=text,
+                normalized_text=norm,
                 language=lang,
                 issue_category="electricity",
                 department="electricity_department",
