@@ -57,7 +57,7 @@ def generate_complaint_draft(
         "department": cluster.department,
         "area": area,
         "ward": cluster.ward or "",
-        "language": "hi",
+        "language": "hi-IN",
         "grievance_count": cluster.grievance_count,
         "summary": cluster.summary or "Multiple citizens have reported this issue.",
         "sample_grievances": sample_grievances,
@@ -70,7 +70,7 @@ def generate_complaint_draft(
         title=cluster_context["title"],
         body=body,
         department=cluster.department,
-        language="hi",
+        language="hi-IN",
         source_grievance_ids=",".join(source_ids),
         status="draft",
     )

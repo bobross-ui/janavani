@@ -88,9 +88,25 @@ class TestDraftGenerationUsesProvider:
             assert "We, the undersigned" in draft.body
             assert "Water_Department" in draft.body
             assert "5" in draft.body
-            assert draft.language == "hi"
+            assert draft.language == "hi-IN"
             assert draft.status == "draft"
             assert draft.cluster_id == cluster.id
+
+    def test_generate_draft_uses_normalized_language_in_context_and_draft(self):
+        """Draft generation should use normalized BCP-style language codes."""
+        mock_provider = MagicMock()
+        mock_provider.generate_draft.return_value = "Normalized language draft body"
+
+        session = self._session()
+        cluster, _ = _seed_cluster_with_grievances(session)
+
+        draft = generate_complaint_draft(
+            session, cluster.id, provider=mock_provider
+        )
+
+        context_arg = mock_provider.generate_draft.call_args[0][0]
+        assert context_arg["language"] == "hi-IN"
+        assert draft.language == "hi-IN"
 
     def test_generate_draft_routes_through_provider(self):
         """Inject a mock provider, verify it's called with correct
@@ -115,7 +131,7 @@ class TestDraftGenerationUsesProvider:
         assert context_arg["department"] == cluster.department
         assert context_arg["grievance_count"] == cluster.grievance_count
         assert context_arg["summary"] == cluster.summary
-        assert context_arg["language"] == "hi"
+        assert context_arg["language"] == "hi-IN"
         assert "Ward 8" in context_arg["area"]
         assert isinstance(context_arg["sample_grievances"], list)
         assert len(context_arg["sample_grievances"]) == 1
@@ -143,7 +159,7 @@ class TestDraftGenerationUsesProvider:
         assert draft.body == "Persisted draft body"
         assert draft.department == cluster.department
         assert draft.status == "draft"
-        assert draft.language == "hi"
+        assert draft.language == "hi-IN"
         assert draft.source_grievance_ids != ""
 
         # Verify it's actually in the DB (re-query)
