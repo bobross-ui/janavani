@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
-import { AudioPlayer } from "../components/audio-player";
 import { AudioRecorder } from "../components/audio-recorder";
 import { ClusterSuggestionCard } from "../components/cluster-suggestion-card";
 import { GrievanceForm } from "../components/grievance-form";
@@ -77,10 +76,6 @@ export default function SubmitScreen() {
       {result ? (
         <>
           <TranscriptReview extraction={result.extraction} />
-          <AudioPlayer
-            text={result.grievance.normalized_text || result.grievance.raw_text}
-            language={result.grievance.language}
-          />
           <ClusterSuggestionCard
             action={result.suggested_action}
             clusterId={result.matched_cluster_id}
