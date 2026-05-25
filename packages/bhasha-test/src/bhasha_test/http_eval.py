@@ -12,7 +12,10 @@ class PipelineHttpError(Exception):
     """Raised when the pipeline HTTP call fails."""
 
 
-def _post_pipeline(target_url: str, input_text: str, language: str, provider: str) -> dict[str, Any]:
+def _post_pipeline(
+    target_url: str, input_text: str, language: str, provider: str,
+    timeout: int = 30,
+) -> dict[str, Any]:
     """POST to /evals/pipeline and return the parsed JSON response."""
     url = target_url.rstrip("/") + "/evals/pipeline"
     payload = json.dumps({"input_text": input_text, "language": language}).encode("utf-8")
@@ -26,7 +29,7 @@ def _post_pipeline(target_url: str, input_text: str, language: str, provider: st
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")
@@ -38,17 +41,31 @@ def _post_pipeline(target_url: str, input_text: str, language: str, provider: st
 class HttpEvalProvider:
     """Wraps POST /evals/pipeline to look like an ExtractionProvider.
 
-    The pipeline endpoint returns PipelineResult which has category,
-    department, urgency, ward, landmark, pii_redacted_text. We remap
-    that into the dict shape the evaluator expects.
+    Collects per-case pipeline latency from the API response so
+    p95/mean latency can be attached to the eval report.
     """
 
-    def __init__(self, target_url: str, provider_name: str = "local"):
+    def __init__(
+        self, target_url: str, provider_name: str = "local",
+        timeout: int = 30,
+    ):
         self._target = target_url
         self._provider = provider_name
+        self._timeout = timeout
+        self.latencies_ms: list[float] = []
 
     def extract_grievance(self, text: str, language: str = "hi") -> dict[str, Any]:
-        data = _post_pipeline(self._target, text, language, self._provider)
+        data = _post_pipeline(
+            self._target, text, language, self._provider,
+            timeout=self._timeout,
+        )
+        # Capture pipeline latency for scorer metrics
+        latency = data.get("latency", {})
+        if isinstance(latency, dict):
+            total = latency.get("total_ms")
+            if isinstance(total, (int, float)):
+                self.latencies_ms.append(float(total))
+
         # PipelineResult → ExtractionResult-compatible dict
         return {
             "category": data.get("category", "other"),

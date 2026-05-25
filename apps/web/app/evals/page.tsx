@@ -6,9 +6,9 @@ import { getLatestEvalReport } from "../../lib/api";
 interface CaseEntry {
   id: string;
   passed: boolean;
-  expected: Record<string, string>;
-  prediction: Record<string, string>;
-  field_failures: Record<string, Record<string, string>>;
+  expected: Record<string, unknown>;
+  prediction: Record<string, unknown>;
+  field_failures: Record<string, Record<string, unknown>>;
 }
 
 interface EvalSummary {
@@ -56,6 +56,7 @@ export default function EvalsPage() {
               No eval report yet. Run{" "}
               <code>
                 bhasha-test evaluate data/eval_cases/grievance_cases.yaml
+                --target http://localhost:8000
                 --output data/eval_reports/latest.json
               </code>
             </p>

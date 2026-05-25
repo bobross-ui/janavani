@@ -1,11 +1,13 @@
 """Eval pipeline route — end-to-end evaluation without persisting."""
 
 import json
+import logging
 import time
+from json import JSONDecodeError
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlmodel import Session
@@ -17,7 +19,35 @@ from app.services.clustering import find_matching_cluster
 from app.services.redaction import redact_all
 from app.routes.grievances import get_request_ai_provider
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/evals", tags=["evals"])
+
+
+# ── Report path (resolved from config/cwd once at startup) ──────────
+
+_EVAL_REPORT_PATH: Optional[Path] = None
+
+
+def _resolve_report_path() -> Path:
+    """Resolve the eval report path from settings or a sensible default.
+
+    Uses a configurable path if set, otherwise falls back to
+    {cwd}/data/eval_reports/latest.json.  Callers that need to
+    override the location can set ``EVAL_REPORT_PATH`` in .env.
+    """
+    settings = get_settings()
+    custom = getattr(settings, "eval_report_path", None)
+    if custom:
+        return Path(custom)
+    # Default: relative to cwd (works for local dev; Docker maps a volume)
+    return Path("data/eval_reports/latest.json")
+
+
+def _get_report_path() -> Path:
+    global _EVAL_REPORT_PATH
+    if _EVAL_REPORT_PATH is None:
+        _EVAL_REPORT_PATH = _resolve_report_path()
+    return _EVAL_REPORT_PATH
 
 
 # ── Request / Response models ────────────────────────────────────────
@@ -73,7 +103,8 @@ def run_pipeline(
     pii_redacted = redact_all(extraction.normalized_text)
     redact_ms = (time.perf_counter() - t2) * 1000
 
-    # 3. Translate to pivot language for cross-language clustering
+    # 3. Translate to pivot language — use a copy so we don't mutate the
+    #    original extraction object (which may be shared or immutable).
     t3 = time.perf_counter()
     pivot_language = settings.clustering_pivot_language
     normalized = extraction.normalized_text
@@ -81,12 +112,16 @@ def run_pipeline(
         normalized = provider.translate_text(
             normalized, pivot_language, source_language=extraction.language
         )
-        extraction.normalized_text = normalized
     translate_ms = (time.perf_counter() - t3) * 1000
+
+    # Build a clustering extraction with the translated normalized_text
+    clustering_extraction = extraction.model_copy(
+        update={"normalized_text": normalized}
+    )
 
     # 4. Cluster match (in-memory read, no persist)
     t4 = time.perf_counter()
-    matched = find_matching_cluster(session, extraction)
+    matched = find_matching_cluster(session, clustering_extraction)
     cluster_match_ms = (time.perf_counter() - t4) * 1000
 
     total_ms = (time.perf_counter() - t0) * 1000
@@ -110,32 +145,32 @@ def run_pipeline(
     )
 
 
-# ── Report storage / retrieval ──────────────────────────────────────
-
-_EVAL_REPORT_DIR = Path("data/eval_reports")
-_LATEST_REPORT_PATH = _EVAL_REPORT_DIR / "latest.json"
-
-
-def save_latest_report(report: dict[str, Any]) -> None:
-    """Persist an eval report to data/eval_reports/latest.json."""
-    _EVAL_REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    _LATEST_REPORT_PATH.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
+# ── Report retrieval ─────────────────────────────────────────────────
 
 @router.get("/latest")
 def get_latest_report() -> JSONResponse:
     """Return the most recent eval report.
 
     The report is written by the bhasha-test CLI with --output pointing to
-    data/eval_reports/latest.json. Returns 404 if no report exists yet.
+    data/eval_reports/latest.json. Returns 404 if no report exists yet,
+    503 if the report file is malformed.
     """
-    if not _LATEST_REPORT_PATH.exists():
+    report_path = _get_report_path()
+    if not report_path.exists():
         raise HTTPException(
             status_code=404,
-            detail="No eval report yet. Run bhasha-test evaluate --output data/eval_reports/latest.json",
+            detail=(
+                "No eval report yet. Run: bhasha-test evaluate "
+                "data/eval_cases/grievance_cases.yaml "
+                "--output data/eval_reports/latest.json"
+            ),
         )
-    data = json.loads(_LATEST_REPORT_PATH.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(report_path.read_text(encoding="utf-8"))
+    except JSONDecodeError as exc:
+        logger.warning("Malformed eval report at %s: %s", report_path, exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Eval report is malformed. Re-run the evaluation to regenerate it.",
+        ) from exc
     return JSONResponse(content=data)

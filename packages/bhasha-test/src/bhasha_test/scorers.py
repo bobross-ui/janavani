@@ -32,22 +32,23 @@ def compute_wer(reference: str, hypothesis: str) -> float:
         return 1.0
 
     n, m = len(ref), len(hyp)
-    dp: list[list[int]] = [[0] * (m + 1) for _ in range(n + 1)]
-    for i in range(n + 1):
-        dp[i][0] = i
-    for j in range(m + 1):
-        dp[0][j] = j
+
+    # Two-row Levenshtein at word level (O(min(n,m)) memory)
+    prev = list(range(m + 1))
+    curr = [0] * (m + 1)
 
     for i in range(1, n + 1):
+        curr[0] = i
         for j in range(1, m + 1):
             cost = 0 if ref[i - 1] == hyp[j - 1] else 1
-            dp[i][j] = min(
-                dp[i - 1][j] + 1,
-                dp[i][j - 1] + 1,
-                dp[i - 1][j - 1] + cost,
+            curr[j] = min(
+                prev[j] + 1,       # deletion
+                curr[j - 1] + 1,   # insertion
+                prev[j - 1] + cost,  # substitution
             )
+        prev, curr = curr, prev
 
-    return dp[n][m] / n
+    return prev[m] / n
 
 
 # ── Draft Faithfulness ────────────────────────────────────────────────
@@ -73,15 +74,15 @@ def compute_draft_faithfulness(draft: str | None, sources: Sequence[str]) -> flo
     considered unsupported (hallucinated).
 
     Returns a score in [0.0, 1.0]:
-      1.0 = all contacts in draft are supported by sources.
+      1.0 = no contacts in draft, or all contacts are supported by sources.
       0.0 = every contact in draft is unsupported.
     """
     if not draft or not sources:
-        return 0.0
+        return 1.0  # nothing to hallucinate
 
     draft_contacts = _extract_contacts(draft)
     if not draft_contacts:
-        return 1.0  # no contacts to hallucinate → perfect
+        return 1.0  # no contacts → perfect
 
     source_contacts: set[str] = set()
     for src in sources:

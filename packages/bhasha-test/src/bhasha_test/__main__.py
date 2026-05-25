@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .evaluator import evaluate_cases
-from .http_eval import HttpEvalProvider
+from .evaluator import attach_scorer_results, evaluate_cases
+from .http_eval import HttpEvalProvider, PipelineHttpError
 
 
 def _repo_root() -> Path:
@@ -61,24 +61,29 @@ def _read_cases(path: Path) -> list[dict[str, Any]]:
 
 
 def _write_report(path: Path, report: dict[str, Any]) -> None:
+    """Write eval report atomically (tmp file + rename)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    tmp.replace(path)
 
 
 def _print_summary(report: dict[str, Any]) -> None:
     summary = report["summary"]
-    print(
-        " ".join(
-            [
-                f"total_cases={summary['total_cases']}",
-                f"passed_cases={summary['passed_cases']}",
-                f"overall_score={summary['overall_score']:.3f}",
-                f"redaction_safety={summary['redaction_safety']:.3f}",
-            ]
-        )
-    )
+    parts = [
+        f"total_cases={summary['total_cases']}",
+        f"passed_cases={summary['passed_cases']}",
+        f"overall_score={summary['overall_score']:.3f}",
+        f"redaction_safety={summary['redaction_safety']:.3f}",
+    ]
+    metrics = summary.get("scorer_metrics", {})
+    if metrics:
+        for key in ("latency_mean_ms", "latency_p95_ms", "wer_mean"):
+            if key in metrics:
+                parts.append(f"{key}={metrics[key]:.1f}")
+    print(" ".join(parts))
 
 
 def _print_per_field(report: dict[str, Any]) -> None:
@@ -98,8 +103,17 @@ def evaluate_command(args: argparse.Namespace) -> int:
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
             return 2
-        provider = HttpEvalProvider(args.target, args.provider)
-        report = evaluate_cases(cases, provider)
+        try:
+            provider = HttpEvalProvider(
+                args.target, args.provider, timeout=args.timeout
+            )
+            report = evaluate_cases(cases, provider)
+            # Wire latency scorer from pipeline responses
+            if provider.latencies_ms:
+                attach_scorer_results(report, latency_ms=provider.latencies_ms)
+        except PipelineHttpError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
         if args.output:
             _write_report(Path(args.output), report)
         _print_summary(report)
@@ -212,6 +226,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--target",
         metavar="URL",
         help="HTTP target: POST cases to /evals/pipeline on a live API",
+    )
+    evaluate.add_argument(
+        "--timeout",
+        type=int,
+        default=30,
+        help="HTTP timeout in seconds (default: 30)",
     )
     evaluate.set_defaults(func=evaluate_command)
 

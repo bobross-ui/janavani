@@ -35,11 +35,11 @@ class TestComputeWer:
 # ── compute_draft_faithfulness tests ─────────────────────────────────────────
 
 class TestComputeDraftFaithfulness:
-    def test_empty_draft_returns_zero(self):
-        assert compute_draft_faithfulness("", ["some source"]) == 0.0
+    def test_empty_draft_returns_one(self):
+        assert compute_draft_faithfulness("", ["some source"]) == 1.0
 
-    def test_none_draft_returns_zero(self):
-        assert compute_draft_faithfulness(None, ["some source"]) == 0.0
+    def test_none_draft_returns_one(self):
+        assert compute_draft_faithfulness(None, ["some source"]) == 1.0
 
     def test_no_contacts_in_draft_is_perfect(self):
         assert compute_draft_faithfulness("hello world", ["no contacts here"]) == 1.0
