@@ -80,10 +80,9 @@ class LocalAIProvider:
         target_language: str = "en-IN",
         model: Optional[str] = None,
     ) -> TranscriptionResult:
-        return TranscriptionResult(
-            transcript="",
-            detected_language="en-IN",
-            confidence=0.0,
+        raise SarvamError(
+            "Speech-to-text translation is not available with the local AI provider. "
+            "Start the API with AI_PROVIDER=sarvam for voice complaints."
         )
 
     def translate_text(

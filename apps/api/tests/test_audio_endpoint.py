@@ -7,6 +7,7 @@ dependency_overrides.
 
 from io import BytesIO
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
@@ -146,6 +147,7 @@ class _MockTranscribeProvider:
         return "test draft"
 
 
+
 class _ErrorTranscribeProvider:
     """Mock that raises SarvamError on transcribe."""
 
@@ -208,6 +210,16 @@ def _install_mocks(mock_provider, mock_storage):
 
     app.dependency_overrides[get_request_ai_provider] = override_provider
     app.dependency_overrides[get_audio_storage] = override_storage
+
+
+class TestLocalProviderVoiceSupport:
+    def test_local_provider_stt_translate_fails_instead_of_returning_empty_transcript(self):
+        """Local provider has no STT-translate; it must fail instead of saving blank grievances."""
+        from app.services.ai_provider import LocalAIProvider
+
+        provider = LocalAIProvider()
+        with pytest.raises(SarvamError, match="not available"):
+            provider.transcribe_audio_translate(b"fake audio")
 
 
 # ── tests ──────────────────────────────────────────────────────────────
