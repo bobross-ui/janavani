@@ -64,7 +64,7 @@ export default function PublicDashboardPage() {
             <>
           <StatsStrip clusters={clusters} />
 
-          <ClusterMap clusters={clusters} />
+          <ClusterMap clusters={filtered} />
 
           <section className="filters" aria-label="Cluster filters">
             <select value={ward} onChange={(event) => setWard(event.target.value)} aria-label="Filter by ward">
