@@ -196,10 +196,16 @@ def submit_grievance(
                 "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
                 final_ward, body.latitude, body.longitude, inferred,
             )
-            area = ""  # suppress GPS area when ward sources conflict
 
     area = infer_area(body.latitude, body.longitude) if body.latitude is not None and body.longitude is not None else ""
     location = resolve_location(session, body.latitude, body.longitude) if body.latitude is not None and body.longitude is not None else None
+
+    # Suppress GPS-derived area when ward sources conflict (after location resolution)
+    if body.latitude is not None and body.longitude is not None:
+        inferred = infer_ward(body.latitude, body.longitude)
+        if inferred and _ward_disagrees(final_ward, body.latitude, body.longitude) if final_ward else False:
+            area = ""
+            location = None
 
     # Compute embedding once (shared between clustering and persistence)
     emb_json = embed_to_json(extraction.normalized_text)
@@ -390,10 +396,16 @@ def submit_audio_grievance(
                 "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
                 final_ward, latitude, longitude, inferred,
             )
-            area = ""  # suppress GPS area when ward sources conflict
 
     area = infer_area(latitude, longitude) if latitude is not None and longitude is not None else ""
     location = resolve_location(session, latitude, longitude) if latitude is not None and longitude is not None else None
+
+    # Suppress GPS-derived area when ward sources conflict (after location resolution)
+    if latitude is not None and longitude is not None:
+        inferred = infer_ward(latitude, longitude)
+        if inferred and _ward_disagrees(final_ward, latitude, longitude) if final_ward else False:
+            area = ""
+            location = None
 
     # Compute embedding once (shared between clustering and persistence)
     emb_json = embed_to_json(extraction.normalized_text)

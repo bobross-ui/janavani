@@ -130,8 +130,10 @@ def reverse_geocode(lat: float, lon: float) -> LocationResult:
     key = (round(lat, 3), round(lon, 3))
     if key in _cache:
         cached = _cache[key]
-        cached.source = "nominatim_cache"
-        return cached
+        import copy
+        result = copy.copy(cached)
+        result.source = "nominatim_cache"
+        return result
 
     try:
         params = urllib.parse.urlencode({
@@ -173,5 +175,7 @@ def resolve_location(session, lat: float, lon: float) -> LocationResult:
         if area:
             result.area = area
             result.source = "static_centres"
+        else:
+            result.source = "gps_only"
 
     return result
