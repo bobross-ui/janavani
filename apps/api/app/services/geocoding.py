@@ -96,3 +96,82 @@ def ward_disagrees(
     wlat, wlon, _, _area = _DEMO_WARD_CENTRES[text_ward]
     dist_km = haversine_m(lat, lon, wlat, wlon) / 1000
     return dist_km > threshold_km
+
+# ── Nominatim reverse geocoding ─────────────────────────────────────
+
+import json
+import urllib.request
+import urllib.parse
+from dataclasses import dataclass
+
+_NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
+_NOMINATIM_UA = "Janavani/1.0 (demo; contact@example.com)"
+
+# Simple in-memory cache: rounded (lat, lon) → result
+_cache: dict = {}
+
+
+@dataclass
+class LocationResult:
+    suburb: str = ""
+    road: str = ""
+    area: str = ""
+    landmark: str = ""
+    sector: str = ""
+    city: str = ""
+    display_name: str = ""
+    source: str = ""
+    raw_json: str = ""
+
+
+def reverse_geocode(lat: float, lon: float) -> LocationResult:
+    """Resolve coordinates to structured location via Nominatim with cache."""
+    # Round to ~100m to reuse cached results
+    key = (round(lat, 3), round(lon, 3))
+    if key in _cache:
+        cached = _cache[key]
+        cached.source = "nominatim_cache"
+        return cached
+
+    try:
+        params = urllib.parse.urlencode({
+            "lat": lat, "lon": lon, "format": "json",
+            "addressdetails": 1, "zoom": 18,
+        })
+        req = urllib.request.Request(
+            f"{_NOMINATUM_URL}?{params}",
+            headers={"User-Agent": _NOMINATUM_UA},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception:
+        return LocationResult(source="nominatim_error")
+
+    addr = data.get("address", {})
+    result = LocationResult(
+        suburb=addr.get("suburb") or addr.get("neighbourhood") or addr.get("city_district") or "",
+        road=addr.get("road") or addr.get("pedestrian") or "",
+        area=addr.get("suburb") or addr.get("neighbourhood") or addr.get("city_district") or "",
+        landmark=addr.get("amenity") or addr.get("tourism") or addr.get("historic") or "",
+        sector=addr.get("county") or addr.get("state_district") or "",
+        city=addr.get("city") or addr.get("town") or addr.get("municipality") or "",
+        display_name=data.get("display_name", ""),
+        source="nominatim",
+        raw_json=json.dumps(data),
+    )
+    _cache[key] = result
+    return result
+
+
+def resolve_location(session, lat: float, lon: float) -> LocationResult:
+    """Resolve location with fallback: cache → Nominatim → static → gps_only."""
+    result = reverse_geocode(lat, lon)
+
+    if not result.area:
+        # Fall back to static centres
+        area = infer_area(lat, lon)
+        if area:
+            result.area = area
+            result.source = "static_centres"
+
+    return result

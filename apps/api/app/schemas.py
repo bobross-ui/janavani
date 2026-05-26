@@ -49,6 +49,9 @@ class GrievanceRead(BaseModel):
     ward: str
     area: str = ""
     area_source: str = ""
+    suburb: str = ""
+    road: str = ""
+    sector: str = ""
     landmark: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -94,6 +97,9 @@ class ClusterRead(BaseModel):
     ward: str
     area: str = ""
     area_source: str = ""
+    suburb: str = ""
+    road: str = ""
+    sector: str = ""
     landmark: str
     status: str
     support_count: int

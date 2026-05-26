@@ -79,17 +79,28 @@ def _grievance_to_read(g: Grievance) -> GrievanceRead:
         created_at=g.created_at,
     )
 
-def _cluster_title(extraction, final_ward: str, area: str) -> str:
-    """Build a human-readable cluster title: 'Water Supply near Dadar, Ward 8'."""
+def _cluster_title(extraction, final_ward: str, area: str, location=None) -> str:
+    """Build a human-readable cluster title using available location data."""
     cat = extraction.category.replace("_", " ").title()
-    if area and final_ward:
-        return f"{cat} near {area}, Ward {final_ward}"
-    if area:
-        return f"{cat} near {area}"
+
+    # Prefer specific location markers
+    loc = location
+    if loc and loc.landmark:
+        base = f"{cat} near {loc.landmark}"
+    elif loc and loc.road:
+        base = f"{cat} on {loc.road}"
+    elif area:
+        base = f"{cat} near {area}"
+    else:
+        base = cat
+
+    # Add administrative context
+    parts = [base]
+    if loc and loc.suburb and loc.suburb != area:
+        parts.append(loc.suburb)
     if final_ward:
-        return f"{cat} in Ward {final_ward}"
-    # GPS exists but no match — better than showing nothing
-    return f"{cat} near submitted location"
+        parts.append(f"Ward {final_ward}")
+    return ", ".join(parts)
 
 def _create_cluster_for_grievance(
     session: Session,
@@ -99,10 +110,11 @@ def _create_cluster_for_grievance(
     emb_json,
     lat, lon,
     area: str = "",
+    location=None,
 ):
     """Auto-create an IssueCluster for an unmatched grievance and link it."""
     new_cluster = IssueCluster(
-        title=_cluster_title(extraction, final_ward, area),
+        title=_cluster_title(extraction, final_ward, area, location),
         summary=extraction.normalized_text,
         issue_category=extraction.category,
         department=extraction.department,
@@ -114,8 +126,12 @@ def _create_cluster_for_grievance(
         centroid_latitude=lat,
         centroid_longitude=lon,
         coordinate_count=1 if (lat is not None and lon is not None) else 0,
-        area=area,
-        area_source="demo_mumbai" if area else "",
+        area=location.area if location else area,
+        area_source=location.source if location else ("demo_mumbai" if area else ""),
+        suburb=location.suburb if location else "",
+        road=location.road if location else "",
+        sector=location.sector if location else "",
+        location_json=location.raw_json if location else None,
     )
     # Initialize embedding so subsequent submissions can match
     if emb_json is not None:
@@ -167,7 +183,7 @@ def submit_grievance(
     # When GPS coords are available, infer ward if extraction missed it.
     # Must run before find_matching_cluster so the inferred ward feeds
     # into area matching and haversine decisions.
-    from app.services.geocoding import infer_area, infer_ward, ward_disagrees as _ward_disagrees
+    from app.services.geocoding import infer_area, infer_ward, resolve_location, ward_disagrees as _ward_disagrees
 
     final_ward = extraction.ward
     if body.latitude is not None and body.longitude is not None:
@@ -183,6 +199,7 @@ def submit_grievance(
             area = ""  # suppress GPS area when ward sources conflict
 
     area = infer_area(body.latitude, body.longitude) if body.latitude is not None and body.longitude is not None else ""
+    location = resolve_location(session, body.latitude, body.longitude) if body.latitude is not None and body.longitude is not None else None
 
     # Compute embedding once (shared between clustering and persistence)
     emb_json = embed_to_json(extraction.normalized_text)
@@ -210,8 +227,12 @@ def submit_grievance(
         latitude=body.latitude,
         longitude=body.longitude,
         pii_redacted_text=extraction.pii_redacted_text,
-        area=area,
-        area_source="demo_mumbai" if area else "",
+        area=location.area if location else area,
+        area_source=location.source if location else ("demo_mumbai" if area else ""),
+        suburb=location.suburb if location else "",
+        road=location.road if location else "",
+        sector=location.sector if location else "",
+        location_json=location.raw_json if location else None,
         consent_public=body.consent_public,
         embedding_json=emb_json,
     )
@@ -250,7 +271,7 @@ def submit_grievance(
         # Create cluster AND grievance in one transaction via shared helper
         cluster_id, cluster_title = _create_cluster_for_grievance(
             session, extraction, final_ward, grievance, emb_json,
-            body.latitude, body.longitude, area,
+            body.latitude, body.longitude, area, location,
         )
 
     session.refresh(grievance)
@@ -356,7 +377,7 @@ def submit_audio_grievance(
     )
 
     # ── Ward inference from coords (BEFORE clustering) ──────────
-    from app.services.geocoding import infer_area, infer_ward, ward_disagrees as _ward_disagrees
+    from app.services.geocoding import infer_area, infer_ward, resolve_location, ward_disagrees as _ward_disagrees
 
     final_ward = extraction.ward
     if latitude is not None and longitude is not None:
@@ -372,6 +393,7 @@ def submit_audio_grievance(
             area = ""  # suppress GPS area when ward sources conflict
 
     area = infer_area(latitude, longitude) if latitude is not None and longitude is not None else ""
+    location = resolve_location(session, latitude, longitude) if latitude is not None and longitude is not None else None
 
     # Compute embedding once (shared between clustering and persistence)
     emb_json = embed_to_json(extraction.normalized_text)
@@ -400,8 +422,12 @@ def submit_audio_grievance(
         latitude=latitude,
         longitude=longitude,
         pii_redacted_text=extraction.pii_redacted_text,
-        area=area,
-        area_source="demo_mumbai" if area else "",
+        area=location.area if location else area,
+        area_source=location.source if location else ("demo_mumbai" if area else ""),
+        suburb=location.suburb if location else "",
+        road=location.road if location else "",
+        sector=location.sector if location else "",
+        location_json=location.raw_json if location else None,
         consent_public=consent_public,
         audio_key=audio_key,
         embedding_json=emb_json,
@@ -437,7 +463,7 @@ def submit_audio_grievance(
         # Create cluster AND grievance in one transaction via shared helper
         cluster_id, cluster_title = _create_cluster_for_grievance(
             session, extraction, final_ward, grievance, emb_json,
-            latitude, longitude, area,
+            latitude, longitude, area, location,
         )
 
     session.refresh(grievance)

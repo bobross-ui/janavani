@@ -44,6 +44,15 @@ def create_db_and_tables():
             "ALTER TABLE grievances ADD COLUMN area_source TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE issue_clusters ADD COLUMN area TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE issue_clusters ADD COLUMN area_source TEXT NOT NULL DEFAULT ''",
+            # reverse geocoding
+            "ALTER TABLE grievances ADD COLUMN suburb TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE grievances ADD COLUMN road TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE grievances ADD COLUMN sector TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE grievances ADD COLUMN location_json TEXT",
+            "ALTER TABLE issue_clusters ADD COLUMN suburb TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE issue_clusters ADD COLUMN road TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE issue_clusters ADD COLUMN sector TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE issue_clusters ADD COLUMN location_json TEXT",
         ]:
             try:
                 conn.exec_driver_sql(sql)

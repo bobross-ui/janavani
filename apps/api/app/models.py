@@ -56,6 +56,11 @@ class Grievance(SQLModel, table=True):
     embedding_json: Optional[str] = Field(default=None)
     area: str = Field(default="")
     area_source: str = Field(default="")
+    suburb: str = Field(default="")
+    road: str = Field(default="")
+    landmark: str = Field(default="")
+    sector: str = Field(default="")
+    location_json: Optional[str] = Field(default=None)  # raw reverse-geocode result
     created_at: datetime = Field(default_factory=_now)
 
 
@@ -73,6 +78,10 @@ class IssueCluster(SQLModel, table=True):
     ward: str = Field(default="", index=True)
     area: str = Field(default="")
     area_source: str = Field(default="")
+    suburb: str = Field(default="")
+    road: str = Field(default="")
+    sector: str = Field(default="")
+    location_json: Optional[str] = Field(default=None)
     landmark: str = Field(default="")
     status: str = Field(default="open", index=True)
     support_count: int = Field(default=0)
