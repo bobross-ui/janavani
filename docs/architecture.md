@@ -125,8 +125,10 @@ Grievance arrives
 │ Primary: cosine on      │  "no water supply" matches
 │   embeddings (τ=0.78)   │  "taps are dry" (no shared
 │                         │  words, same meaning)
-│ Fallback: Jaccard token │  Only when embeddings model
-│   overlap (τ=0.15)      │  not installed (dev/demo)
+│ Fallback: Jaccard token │  When either grievance or
+│   overlap (τ=0.15)      │  cluster lacks an embedding
+│                         │  (legacy clusters, model not
+│                         │  installed, failed inference)
 └────────────┬────────────┘
              │ pass
              ▼
@@ -143,9 +145,14 @@ Grievance arrives
        CLUSTER MATCH
 ```
 
-All three gates must pass. Category prevents cross-topic false positives regardless of text similarity. Text (cosine) catches synonyms and cross-language complaints after English-pivot translation. Location ensures spatial relevance — a water complaint in Mumbai doesn't cluster with a water complaint in Delhi even if both say "water not coming."
+With coordinates, location prevents geographically distant complaints from
+clustering even when the text is similar.
 
-**In production**, the embedding model is always loaded and Jaccard is never used. The Python candidate loop is replaced by a pgvector ANN query directly in Postgres. The architecture (category → cosine → location) is production-correct; the implementation is demo-grade.
+**Current implementation** stores embeddings as JSON text columns and uses
+a Python candidate loop — suitable for the demo scale (tens of clusters).
+The production target is to require embeddings (no Jaccard fallback) and
+replace the Python loop with a pgvector ANN query directly in Postgres,
+using native vector columns and an IVFFlat/HNSW index.
 
 ## Data model (simplified)
 
