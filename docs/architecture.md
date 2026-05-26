@@ -47,9 +47,9 @@
 │                                           ▼              │
 │                              ┌────────────────────────┐  │
 │                              │  Cluster matching       │  │
-│                              │  (category + ward +     │  │
-│                              │   token overlap /       │  │
-│                              │   future: embeddings)   │  │
+│                              │  (category + location + │  │
+│                              │   cosine on embeddings, │  │
+│                              │   Jaccard fallback)     │  │
 │                              └────────────┬───────────┘  │
 │                                           │              │
 │                      ┌────────────────────┘              │
@@ -57,8 +57,8 @@
 │              ┌──────────────┐                            │
 │              │   Postgres   │                            │
 │              │  (pgvector   │                            │
-│              │   planned    │                            │
-│              │   for 1.3)   │                            │
+│              │   enabled;   │                            │
+│              │   JSON now)  │                            │
 │              └──────────────┘                            │
 └───────────────────────────────────────────────────────────┘
         │
