@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -31,6 +30,7 @@ export default function ProfileScreen() {
   const fetchReports = () => {
     listMyGrievances(USER_ID)
       .then(setReports)
+      .then(() => setError(""))
       .catch((e) => setError(e.message))
       .finally(() => {
         setLoading(false);
@@ -69,7 +69,15 @@ export default function ProfileScreen() {
         </View>
       }
       ListEmptyComponent={
-        !loading ? (
+        error ? (
+          <View style={styles.empty}>
+            <Text style={styles.errorText}>Could not load reports</Text>
+            <Text style={styles.emptySub}>{error}</Text>
+            <TouchableOpacity style={styles.emptyButton} onPress={onRefresh}>
+              <Text style={styles.emptyButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : !loading ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>No reports yet</Text>
             <Text style={styles.emptySub}>
@@ -102,13 +110,13 @@ export default function ProfileScreen() {
                   { color: statusColor(item.status) },
                 ]}
               >
-                {item.status}
+                {item.status === "clustered" ? "Clustered" : item.status === "submitted" ? "Submitted" : item.status}
               </Text>
             </View>
           </View>
           <View style={styles.cardMeta}>
             <Text style={styles.metaText}>
-              {item.issue_category.replace(/_/g, " ")} · {item.urgency}
+              {(item.issue_category || "other").replace(/_/g, " ")} · {item.urgency}
             </Text>
             {item.ward ? (
               <Text style={styles.metaText}>Ward {item.ward}</Text>
@@ -157,6 +165,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", padding: 40 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#1a365d" },
   emptySub: { fontSize: 13, color: "#718096", marginTop: 4 },
+  errorText: { fontSize: 15, fontWeight: "700", color: "#e53e3e", marginBottom: 4 },
   emptyButton: {
     marginTop: 16,
     backgroundColor: "#2b6cb0",
