@@ -269,7 +269,7 @@ class TestAudioEndpoint:
         assert g["raw_text"] == "paani nahi aa raha ward 8 mein"
         assert g["audio_key"] == "2025-01-01/mock-audio.wav"
         assert g["issue_category"]
-        assert g["status"] == "submitted"
+        assert g["status"] == "clustered"
 
         # Check extraction
         assert "category" in data["extraction"]

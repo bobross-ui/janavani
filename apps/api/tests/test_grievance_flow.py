@@ -66,14 +66,16 @@ class TestGrievanceFlow:
         assert data["extraction"]["ward"] == "8"
         assert data["extraction"]["urgency"] == "high"
         assert data["suggested_action"] == "create_cluster"
-        assert data["matched_cluster_id"] is None
+        assert data["matched_cluster_id"] is not None
         assert data["grievance"]["id"]
+        assert data["grievance"]["status"] == "clustered"
+        assert data["grievance"]["cluster_id"] == data["matched_cluster_id"]
 
     def test_second_similar_complaint_joins_cluster(self):
         session = self._session()
         user = _seed_user(session)
 
-        # First grievance creates cluster
+        # First grievance auto-creates a cluster
         resp1 = self.client.post(
             "/grievances",
             json={
@@ -83,20 +85,12 @@ class TestGrievanceFlow:
             },
         )
         assert resp1.status_code == 200
-        assert resp1.json()["suggested_action"] == "create_cluster"
+        data1 = resp1.json()
+        assert data1["suggested_action"] == "create_cluster"
+        cluster_id = data1["matched_cluster_id"]
+        assert cluster_id is not None
 
-        # Create the cluster manually (since our MVP doesn't auto-create)
-        cluster = IssueCluster(
-            issue_category="water_supply",
-            ward="8",
-            title="Water shortage Ward 8",
-            summary="paani nahi aa raha ward 8 teen din",
-            status="open",
-        )
-        session.add(cluster)
-        session.commit()
-
-        # Second grievance should join
+        # Second grievance should join the cluster created by the first
         resp2 = self.client.post(
             "/grievances",
             json={
@@ -108,7 +102,7 @@ class TestGrievanceFlow:
         assert resp2.status_code == 200
         data2 = resp2.json()
         assert data2["suggested_action"] == "join_cluster"
-        assert data2["matched_cluster_id"] == cluster.id
+        assert data2["matched_cluster_id"] == cluster_id
 
     def test_get_grievance_by_id(self):
         session = self._session()
