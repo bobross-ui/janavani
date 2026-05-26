@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { getCluster } from "../../lib/api";
 import type { ClusterDetail } from "../../lib/types";
+import { ClusterMap } from "../../components/cluster-map";
 
 export default function ClusterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,6 +22,7 @@ export default function ClusterScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>{cluster.title}</Text>
+      <ClusterMap clusters={[cluster]} />
       <View style={styles.metaRow}>
         <View style={styles.metaChip}><Text style={styles.metaText}>{cluster.issue_category}</Text></View>
         <View style={styles.metaChip}><Text style={styles.metaText}>Ward {cluster.ward}</Text></View>

@@ -47,6 +47,8 @@ export interface ClusterRead {
   support_count: number;
   grievance_count: number;
   urgency_score: number;
+  centroid_latitude: number | null;
+  centroid_longitude: number | null;
 }
 
 export interface ClusterDetail extends ClusterRead {

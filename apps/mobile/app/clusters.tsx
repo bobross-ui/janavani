@@ -11,6 +11,7 @@ import {
 
 import { listClusters } from "../lib/api";
 import type { ClusterRead } from "../lib/types";
+import { ClusterMap } from "../../components/cluster-map";
 
 export default function ClustersScreen() {
   const router = useRouter();
@@ -46,6 +47,9 @@ export default function ClustersScreen() {
       data={clusters}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
+      ListHeaderComponent={
+        <ClusterMap clusters={clusters} tappable />
+      }
       ListEmptyComponent={
         <View style={styles.center}>
           <Text style={styles.empty}>No clusters yet.</Text>
