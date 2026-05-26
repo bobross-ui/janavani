@@ -54,7 +54,7 @@ class TestAreaInference:
     def test_ward_4_returns_byculla(self):
         assert infer_area(18.995, 72.835) == "Byculla"
 
-    def test_ward_11_returns_anderi_west(self):
+    def test_ward_11_returns_andheri_west(self):
         assert infer_area(19.107, 72.856) == "Andheri West"
 
     def test_ward_2_returns_bandra_west(self):

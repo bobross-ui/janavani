@@ -66,6 +66,8 @@ def _grievance_to_read(g: Grievance) -> GrievanceRead:
         department=g.department,
         urgency=g.urgency,
         ward=g.ward,
+        area=g.area,
+        area_source=g.area_source,
         landmark=g.landmark,
         latitude=g.latitude,
         longitude=g.longitude,

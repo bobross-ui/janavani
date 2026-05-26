@@ -23,6 +23,8 @@ def _cluster_to_read(c: IssueCluster) -> ClusterRead:
         issue_category=c.issue_category,
         department=c.department,
         ward=c.ward,
+        area=c.area,
+        area_source=c.area_source,
         landmark=c.landmark,
         status=c.status,
         support_count=c.support_count,
