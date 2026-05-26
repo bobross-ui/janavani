@@ -73,6 +73,7 @@ class IssueCluster(SQLModel, table=True):
     urgency_score: float = Field(default=0.0)
     centroid_latitude: Optional[float] = Field(default=None)
     centroid_longitude: Optional[float] = Field(default=None)
+    coordinate_count: int = Field(default=0)
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 

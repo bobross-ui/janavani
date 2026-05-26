@@ -1,5 +1,7 @@
 from typing import Optional
 
+import logging
+
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
 from sqlmodel import Session
 
@@ -20,6 +22,8 @@ from app.services.ai_provider import (
 from app.services.audio_storage import AudioStorage
 from app.services.clustering import find_matching_cluster
 from app.services.sarvam_client import SarvamError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/grievances", tags=["grievances"])
 
@@ -107,6 +111,21 @@ def submit_grievance(
     )
     action = "join_cluster" if matched else "create_cluster"
 
+    # ── Ward inference from coords ──────────────────────────────
+    # When GPS coords are available, infer ward if extraction missed it.
+    from app.services.geocoding import infer_ward, ward_disagrees as _ward_disagrees
+
+    final_ward = extraction.ward
+    if body.latitude is not None and body.longitude is not None:
+        inferred = infer_ward(body.latitude, body.longitude)
+        if not final_ward and inferred:
+            final_ward = inferred
+        elif final_ward and inferred and _ward_disagrees(final_ward, body.latitude, body.longitude):
+            logger.warning(
+                "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
+                final_ward, body.latitude, body.longitude, inferred,
+            )
+
     # Create grievance record
     grievance = Grievance(
         user_id=body.user_id,
@@ -116,7 +135,7 @@ def submit_grievance(
         issue_category=extraction.category,
         department=extraction.department,
         urgency=extraction.urgency,
-        ward=extraction.ward,
+        ward=final_ward,
         landmark=extraction.landmark,
         latitude=body.latitude,
         longitude=body.longitude,
@@ -131,19 +150,22 @@ def submit_grievance(
     # Update cluster if joined
     if matched:
         matched.grievance_count += 1
-        # Update cluster centroid as incremental mean of grievance coords
+        # Update cluster centroid using incremental mean weighted by
+        # coordinate_count (not grievance_count — historical grievances
+        # without coords don't contribute to centroid).
         if body.latitude is not None and body.longitude is not None:
-            n = matched.grievance_count  # already incremented
             if matched.centroid_latitude is not None and matched.centroid_longitude is not None:
+                n = matched.coordinate_count
                 matched.centroid_latitude = (
-                    (matched.centroid_latitude * (n - 1) + body.latitude) / n
+                    (matched.centroid_latitude * n + body.latitude) / (n + 1)
                 )
                 matched.centroid_longitude = (
-                    (matched.centroid_longitude * (n - 1) + body.longitude) / n
+                    (matched.centroid_longitude * n + body.longitude) / (n + 1)
                 )
             else:
                 matched.centroid_latitude = body.latitude
                 matched.centroid_longitude = body.longitude
+            matched.coordinate_count += 1
         session.add(matched)
         session.commit()
 

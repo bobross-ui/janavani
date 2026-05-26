@@ -60,20 +60,39 @@ def find_matching_cluster(
     grievance_lat: Optional[float] = None,
     grievance_lon: Optional[float] = None,
 ) -> Optional[IssueCluster]:
-    """Find an existing cluster matching the extracted grievance.
+    """Find the best matching cluster for a grievance.
 
     Match conditions:
     - Same issue category
     - Same area (ward match or haversine ≤ threshold)
     - Token overlap above threshold
     - Cluster status is open or drafted
+
+    Returns the candidate with the highest token overlap (best match).
+    When coords are absent, the query pre-filters by ward for efficiency.
     """
-    statement = (
-        select(IssueCluster)
-        .where(IssueCluster.issue_category == extraction.category)
-        .where(IssueCluster.status.in_(["open", "drafted"]))
-    )
+    has_coords = grievance_lat is not None and grievance_lon is not None
+
+    if has_coords:
+        # Coords present: fetch all category matches and filter in Python
+        statement = (
+            select(IssueCluster)
+            .where(IssueCluster.issue_category == extraction.category)
+            .where(IssueCluster.status.in_(["open", "drafted"]))
+        )
+    else:
+        # No coords: pre-filter by ward for efficiency
+        statement = (
+            select(IssueCluster)
+            .where(IssueCluster.issue_category == extraction.category)
+            .where(IssueCluster.ward == extraction.ward)
+            .where(IssueCluster.status.in_(["open", "drafted"]))
+        )
+
     candidates = session.exec(statement).all()
+
+    best_match: Optional[IssueCluster] = None
+    best_overlap = similarity_threshold
 
     for cluster in candidates:
         if not _same_area(
@@ -88,7 +107,9 @@ def find_matching_cluster(
             overlap = _token_overlap(extraction.normalized_text, cluster.summary)
         else:
             overlap = _token_overlap(extraction.normalized_text, cluster.title)
-        if overlap >= similarity_threshold:
-            return cluster
 
-    return None
+        if overlap > best_overlap:
+            best_overlap = overlap
+            best_match = cluster
+
+    return best_match
