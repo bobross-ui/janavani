@@ -611,7 +611,7 @@ class SarvamAIProvider:
             landmark=landmark,
             language=language,
             normalized_text=normalized_text,
-            pii_redacted_text="",  # filled by the caller (route / pipeline)
+            pii_redacted_text=redact_all(normalized_text),
         )
         return result
 
