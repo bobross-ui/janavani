@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Uploa
 from sqlmodel import Session
 
 from app.db import get_session
-from app.models import Grievance
+from app.models import Grievance, IssueCluster
 from app.schemas import (
     ExtractionResult,
     GrievanceCreate,
@@ -76,6 +76,41 @@ def _grievance_to_read(g: Grievance) -> GrievanceRead:
         audio_key=g.audio_key,
         created_at=g.created_at,
     )
+
+def _create_cluster_for_grievance(
+    session: Session,
+    extraction,
+    final_ward: str,
+    grievance,
+    emb_json,
+    lat, lon,
+):
+    """Auto-create an IssueCluster for an unmatched grievance and link it."""
+    new_cluster = IssueCluster(
+        title=f"{extraction.category.replace('_', ' ').title()} in Ward {final_ward or 'unknown'}",
+        summary=extraction.normalized_text,
+        issue_category=extraction.category,
+        department=extraction.department,
+        ward=final_ward,
+        status="open",
+        grievance_count=1,
+        support_count=0,
+        urgency_score={"high": 0.85, "medium": 0.55, "low": 0.25}.get(extraction.urgency, 0.5),
+        centroid_latitude=lat,
+        centroid_longitude=lon,
+        coordinate_count=1 if (lat is not None and lon is not None) else 0,
+    )
+    # Initialize embedding so subsequent submissions can match
+    if emb_json is not None:
+        new_cluster.centroid_embedding_json = emb_json
+        new_cluster.embedding_count = 1
+
+    grievance.cluster_id = new_cluster.id
+    grievance.status = "clustered"
+    session.add_all([grievance, new_cluster])
+    session.commit()
+    session.refresh(new_cluster)
+    return new_cluster.id, new_cluster.title
 
 
 @router.post("", response_model=GrievanceResponse)
@@ -180,11 +215,21 @@ def submit_grievance(
         session.add(matched)
         session.commit()
 
+    # Auto-create cluster when no match found
+    cluster_id = matched.id if matched else None
+    cluster_title = matched.title if matched else None
+
+    if not matched:
+        cluster_id, cluster_title = _create_cluster_for_grievance(
+            session, extraction, final_ward, grievance, emb_json,
+            body.latitude, body.longitude,
+        )
+
     return GrievanceResponse(
         grievance=_grievance_to_read(grievance),
         extraction=extraction,
-        matched_cluster_id=matched.id if matched else None,
-        matched_cluster_title=matched.title if matched else None,
+        matched_cluster_id=cluster_id,
+        matched_cluster_title=cluster_title,
         suggested_action=action,
     )
 
@@ -333,10 +378,20 @@ def submit_audio_grievance(
         session.add(matched)
         session.commit()
 
+    # Auto-create cluster when no match found
+    cluster_id = matched.id if matched else None
+    cluster_title = matched.title if matched else None
+
+    if not matched:
+        cluster_id, cluster_title = _create_cluster_for_grievance(
+            session, extraction, final_ward, grievance, emb_json,
+            latitude, longitude,
+        )
+
     return GrievanceResponse(
         grievance=_grievance_to_read(grievance),
         extraction=extraction,
-        matched_cluster_id=matched.id if matched else None,
-        matched_cluster_title=matched.title if matched else None,
+        matched_cluster_id=cluster_id,
+        matched_cluster_title=cluster_title,
         suggested_action=action,
     )
