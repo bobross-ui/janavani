@@ -1,0 +1,1178 @@
+{
+  "summary": {
+    "total_cases": 50,
+    "passed_cases": 48,
+    "field_accuracy": {
+      "category": 0.98,
+      "department": 0.98,
+      "urgency": 1.0,
+      "ward": 1.0
+    },
+    "extraction_score": 0.9866666666666667,
+    "redaction_safety": 0.98,
+    "overall_score": 0.9833333333333334
+  },
+  "cases": [
+    {
+      "id": "hi-water-1",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-water-2",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-sanitation-1",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": "11"
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "11",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-sanitation-2",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": "11"
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "11",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-roads-1",
+      "passed": true,
+      "expected": {
+        "category": "roads",
+        "department": "public_works",
+        "ward": "4"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "high",
+        "ward": "4",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-roads-2",
+      "passed": true,
+      "expected": {
+        "category": "roads",
+        "department": "public_works",
+        "ward": "4"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "medium",
+        "ward": "4",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-electricity-1",
+      "passed": true,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "2"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "high",
+        "ward": "2",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-electricity-2",
+      "passed": true,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "2"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "medium",
+        "ward": "2",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-ration-1",
+      "passed": true,
+      "expected": {
+        "category": "ration",
+        "department": "food_department",
+        "ward": "5"
+      },
+      "prediction": {
+        "category": "ration",
+        "department": "food_department",
+        "urgency": "medium",
+        "ward": "5",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-ration-2",
+      "passed": true,
+      "expected": {
+        "category": "ration",
+        "department": "food_department",
+        "ward": "5"
+      },
+      "prediction": {
+        "category": "ration",
+        "department": "food_department",
+        "urgency": "high",
+        "ward": "5",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-pension-1",
+      "passed": true,
+      "expected": {
+        "category": "pension",
+        "department": "social_welfare",
+        "ward": "7"
+      },
+      "prediction": {
+        "category": "pension",
+        "department": "social_welfare",
+        "urgency": "high",
+        "ward": "7",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hi-pension-2",
+      "passed": true,
+      "expected": {
+        "category": "pension",
+        "department": "social_welfare",
+        "ward": "7"
+      },
+      "prediction": {
+        "category": "pension",
+        "department": "social_welfare",
+        "urgency": "high",
+        "ward": "7",
+        "language": "hi",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-water-1",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-water-2",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-sanitation-1",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": "11"
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "11",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-sanitation-2",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": "11"
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "11",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-roads-1",
+      "passed": true,
+      "expected": {
+        "category": "roads",
+        "department": "public_works",
+        "ward": "4"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "high",
+        "ward": "4",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-roads-2",
+      "passed": true,
+      "expected": {
+        "category": "roads",
+        "department": "public_works",
+        "ward": "4"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "medium",
+        "ward": "4",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-electricity-1",
+      "passed": true,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "2"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "high",
+        "ward": "2",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-electricity-2",
+      "passed": true,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "2"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "high",
+        "ward": "2",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-ration-1",
+      "passed": true,
+      "expected": {
+        "category": "ration",
+        "department": "food_department",
+        "ward": "5"
+      },
+      "prediction": {
+        "category": "ration",
+        "department": "food_department",
+        "urgency": "medium",
+        "ward": "5",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-ration-2",
+      "passed": true,
+      "expected": {
+        "category": "ration",
+        "department": "food_department",
+        "ward": "5"
+      },
+      "prediction": {
+        "category": "ration",
+        "department": "food_department",
+        "urgency": "high",
+        "ward": "5",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-health-1",
+      "passed": true,
+      "expected": {
+        "category": "health",
+        "department": "health_department",
+        "ward": "3"
+      },
+      "prediction": {
+        "category": "health",
+        "department": "health_department",
+        "urgency": "high",
+        "ward": "3",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "hing-pension-1",
+      "passed": true,
+      "expected": {
+        "category": "pension",
+        "department": "social_welfare",
+        "ward": "7"
+      },
+      "prediction": {
+        "category": "pension",
+        "department": "social_welfare",
+        "urgency": "medium",
+        "ward": "7",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-sanitation-1",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": "11"
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "11",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-sanitation-2",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": "11"
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "11",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-roads-1",
+      "passed": true,
+      "expected": {
+        "category": "roads",
+        "department": "public_works",
+        "ward": "4"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "high",
+        "ward": "4",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-roads-2",
+      "passed": true,
+      "expected": {
+        "category": "roads",
+        "department": "public_works",
+        "ward": "4"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "medium",
+        "ward": "4",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-water-1",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-water-2",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-electricity-1",
+      "passed": true,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "2"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "high",
+        "ward": "2",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "mr-health-1",
+      "passed": true,
+      "expected": {
+        "category": "health",
+        "department": "health_department",
+        "ward": "3"
+      },
+      "prediction": {
+        "category": "health",
+        "department": "health_department",
+        "urgency": "high",
+        "ward": "3",
+        "language": "mr",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-water-1",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-water-2",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-electricity-1",
+      "passed": true,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "2"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "high",
+        "ward": "2",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-electricity-2",
+      "passed": true,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "2"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "medium",
+        "ward": "2",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-ration-1",
+      "passed": true,
+      "expected": {
+        "category": "ration",
+        "department": "food_department",
+        "ward": "5"
+      },
+      "prediction": {
+        "category": "ration",
+        "department": "food_department",
+        "urgency": "medium",
+        "ward": "5",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-ration-2",
+      "passed": true,
+      "expected": {
+        "category": "ration",
+        "department": "food_department",
+        "ward": "5"
+      },
+      "prediction": {
+        "category": "ration",
+        "department": "food_department",
+        "urgency": "medium",
+        "ward": "5",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-roads-1",
+      "passed": true,
+      "expected": {
+        "category": "roads",
+        "department": "public_works",
+        "ward": "4"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "high",
+        "ward": "4",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "ta-sanitation-1",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": "11"
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "11",
+        "language": "ta",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-missing-ward",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": ""
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-landmark-only",
+      "passed": true,
+      "expected": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "ward": ""
+      },
+      "prediction": {
+        "category": "sanitation",
+        "department": "sanitation_department",
+        "urgency": "high",
+        "ward": "",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-codemix",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "medium",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-angry-1",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-emotional",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "high",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-near-duplicate",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "critical",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-should-not-cluster",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "medium",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-pii-heavy",
+      "passed": false,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "5"
+      },
+      "prediction": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "urgency": "high",
+        "ward": "5",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [
+          "[PHONE_REDACTED]"
+        ],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-ambiguous",
+      "passed": false,
+      "expected": {
+        "category": "electricity",
+        "department": "electricity_department",
+        "ward": "6"
+      },
+      "prediction": {
+        "category": "roads",
+        "department": "public_works",
+        "urgency": "medium",
+        "ward": "6",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {
+        "category": {
+          "expected": "electricity",
+          "predicted": "roads"
+        },
+        "department": {
+          "expected": "electricity_department",
+          "predicted": "public_works"
+        }
+      },
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    },
+    {
+      "id": "edge-short",
+      "passed": true,
+      "expected": {
+        "category": "water_supply",
+        "department": "water_department",
+        "ward": "8"
+      },
+      "prediction": {
+        "category": "water_supply",
+        "department": "water_department",
+        "urgency": "medium",
+        "ward": "8",
+        "language": "hi-Latn",
+        "pii_redacted_text": ""
+      },
+      "field_failures": {},
+      "redaction_failures": {
+        "leaked_sensitive": [],
+        "missing_placeholders": [],
+        "residual_pii": []
+      }
+    }
+  ]
+}

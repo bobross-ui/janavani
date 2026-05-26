@@ -36,6 +36,12 @@ out/
 *.sqlite
 *.sqlite3
 
+# Sarvam API usage logs (generated at runtime)
+sarvam_usage.jsonl
+
+# Uploaded grievance audio (runtime user data)
+apps/api/data/audio/
+
 # Expo
 .expo/
 *.jks
