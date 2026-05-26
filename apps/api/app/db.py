@@ -32,11 +32,16 @@ def create_db_and_tables():
     # SQLModel.create_all() does not alter existing tables.  This
     # migration adds the column when upgrading from a previous schema.
     with engine.connect() as conn:
-        try:
-            conn.exec_driver_sql(
-                "ALTER TABLE issue_clusters "
-                "ADD COLUMN coordinate_count INTEGER NOT NULL DEFAULT 0"
-            )
-            conn.commit()
-        except Exception:
-            pass  # column already exists (fresh DB or already migrated)
+        for sql in [
+            # 1.4
+            "ALTER TABLE issue_clusters ADD COLUMN coordinate_count INTEGER NOT NULL DEFAULT 0",
+            # 1.3
+            "ALTER TABLE grievances ADD COLUMN embedding_json TEXT",
+            "ALTER TABLE issue_clusters ADD COLUMN centroid_embedding_json TEXT",
+            "ALTER TABLE issue_clusters ADD COLUMN embedding_count INTEGER NOT NULL DEFAULT 0",
+        ]:
+            try:
+                conn.exec_driver_sql(sql)
+                conn.commit()
+            except Exception:
+                pass  # column already exists

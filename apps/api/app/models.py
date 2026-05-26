@@ -79,6 +79,8 @@ class IssueCluster(SQLModel, table=True):
     coordinate_count: int = Field(default=0)
     # JSON-serialised centroid embedding (list of floats).
     centroid_embedding_json: Optional[str] = Field(default=None)
+    # Number of grievance embeddings that have contributed to the centroid.
+    embedding_count: int = Field(default=0)
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 

@@ -122,16 +122,19 @@ def submit_grievance(
                 final_ward, body.latitude, body.longitude, inferred,
             )
 
+    # Compute embedding once (shared between clustering and persistence)
+    emb_json = embed_to_json(extraction.normalized_text)
+
     # Check for matching cluster
     matched = find_matching_cluster(
         session, extraction,
+        grievance_embedding_json=emb_json,
         grievance_lat=body.latitude,
         grievance_lon=body.longitude,
     )
     action = "join_cluster" if matched else "create_cluster"
 
     # Create grievance record
-    emb_json = embed_to_json(extraction.normalized_text)
     grievance = Grievance(
         user_id=body.user_id,
         raw_text=body.text,
@@ -274,16 +277,19 @@ def submit_audio_grievance(
                 final_ward, latitude, longitude, inferred,
             )
 
+    # Compute embedding once (shared between clustering and persistence)
+    emb_json = embed_to_json(extraction.normalized_text)
+
     # 6. Check for matching cluster
     matched = find_matching_cluster(
         session, extraction,
+        grievance_embedding_json=emb_json,
         grievance_lat=latitude,
         grievance_lon=longitude,
     )
     action = "join_cluster" if matched else "create_cluster"
 
     # 7. Persist Grievance
-    emb_json = embed_to_json(extraction.normalized_text)
     grievance = Grievance(
         user_id=user_id,
         raw_text=transcript,

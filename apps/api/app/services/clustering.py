@@ -1,5 +1,6 @@
 """Hybrid clustering — cosine similarity on embeddings with Jaccard fallback."""
 
+import json
 from typing import Optional
 
 from sqlmodel import Session, select
@@ -8,7 +9,6 @@ from app.models import IssueCluster
 from app.schemas import ExtractionResult
 from app.services.embeddings import (
     cosine_similarity,
-    embed_to_json,
     parse_embedding_json,
     update_centroid,
 )
@@ -52,31 +52,10 @@ def _same_area(
     return False
 
 
-def _score_candidate(
-    extraction: ExtractionResult,
-    cluster: IssueCluster,
-    embedding: Optional[list[float]],
-) -> float:
-    """Score a cluster candidate against a grievance.
-
-    Uses cosine similarity on embeddings when available; falls back to
-    Jaccard token overlap otherwise (e.g., AI_PROVIDER=local without
-    sentence-transformers installed).
-    """
-    cluster_embedding = parse_embedding_json(cluster.centroid_embedding_json)
-
-    if embedding is not None and cluster_embedding is not None:
-        return cosine_similarity(embedding, cluster_embedding)
-
-    # Fallback: Jaccard token overlap
-    if cluster.summary:
-        return _token_overlap(extraction.normalized_text, cluster.summary)
-    return _token_overlap(extraction.normalized_text, cluster.title)
-
-
 def find_matching_cluster(
     session: Session,
     extraction: ExtractionResult,
+    grievance_embedding_json: Optional[str] = None,
     similarity_threshold: float = 0.15,
     cosine_threshold: float = 0.78,
     haversine_threshold_m: float = 300.0,
@@ -88,11 +67,12 @@ def find_matching_cluster(
     Match conditions:
     - Same issue category (hard filter)
     - Same area: ward match or haversine ≤ threshold
-    - Semantic similarity: cosine ≥ τ on embeddings, or
-      Jaccard token overlap ≥ τ when embeddings unavailable
+    - Semantic similarity: cosine ≥ τ when both sides have embeddings,
+      Jaccard token overlap ≥ τ otherwise
     - Cluster status: open or drafted
 
-    Returns the best-matching candidate, or None if no match.
+    Uses the grievance embedding passed in (computed once by the caller)
+    to avoid redundant model inference.
     """
     has_coords = grievance_lat is not None and grievance_lon is not None
 
@@ -112,14 +92,9 @@ def find_matching_cluster(
 
     candidates = session.exec(statement).all()
 
+    grievance_embedding = parse_embedding_json(grievance_embedding_json)
     best_match: Optional[IssueCluster] = None
     best_score = -1.0
-
-    # Compute grievance embedding once (cached by model)
-    grievance_embedding = parse_embedding_json(
-        embed_to_json(extraction.normalized_text)
-    )
-    effective_threshold = cosine_threshold if grievance_embedding is not None else similarity_threshold
 
     for cluster in candidates:
         if not _same_area(
@@ -130,9 +105,20 @@ def find_matching_cluster(
         ):
             continue
 
-        score = _score_candidate(extraction, cluster, grievance_embedding)
+        cluster_embedding = parse_embedding_json(cluster.centroid_embedding_json)
 
-        if score >= effective_threshold and score > best_score:
+        if grievance_embedding is not None and cluster_embedding is not None:
+            score = cosine_similarity(grievance_embedding, cluster_embedding)
+            threshold = cosine_threshold
+        else:
+            # Jaccard fallback: at least one side lacks embeddings
+            if cluster.summary:
+                score = _token_overlap(extraction.normalized_text, cluster.summary)
+            else:
+                score = _token_overlap(extraction.normalized_text, cluster.title)
+            threshold = similarity_threshold
+
+        if score >= threshold and score > best_score:
             best_score = score
             best_match = cluster
 
@@ -145,8 +131,9 @@ def update_cluster_embedding(
 ) -> None:
     """Update the cluster centroid embedding when a grievance joins.
 
-    Called by the route after a grievance is added to the cluster.
-    No-op when embeddings are unavailable.
+    Uses embedding_count for correct incremental mean weighting.
+    On the first contribution, the centroid is set directly from the
+    grievance embedding (no mean needed).
     """
     if not grievance_embedding_json:
         return
@@ -155,12 +142,14 @@ def update_cluster_embedding(
         return
 
     current_vec = parse_embedding_json(cluster.centroid_embedding_json)
-    weight = cluster.coordinate_count  # grievances WITH coords only
-    updated = update_centroid(current_vec, new_vec, weight)
-    cluster.centroid_embedding_json = (
-        embed_to_json("")  # we just compute JSON directly
-    )
 
-    # Actually, let's just serialise the list
-    import json
-    cluster.centroid_embedding_json = json.dumps(updated)
+    if current_vec is None:
+        # First embedding — set directly
+        cluster.centroid_embedding_json = grievance_embedding_json
+        cluster.embedding_count = 1
+    else:
+        # Incremental mean
+        n = cluster.embedding_count
+        updated = update_centroid(current_vec, new_vec, n)
+        cluster.centroid_embedding_json = json.dumps(updated)
+        cluster.embedding_count = n + 1

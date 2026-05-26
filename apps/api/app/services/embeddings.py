@@ -71,16 +71,19 @@ def parse_embedding_json(json_str: Optional[str]) -> Optional[list[float]]:
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Cosine similarity between two normalised embedding vectors.
+    """Cosine similarity between two vectors (any norm).
 
-    Both vectors are assumed to be L2-normalised (as produced by
-    SentenceTransformer with normalize_embeddings=True). Returns a
-    value in [-1, 1]; values near 1 indicate high semantic similarity.
+    Does NOT assume L2-normalised inputs — computes full cosine.
+    Returns a value in [-1, 1]; values near 1 indicate high similarity.
     """
     if len(a) != len(b):
         return 0.0
-    # Dot product suffices for L2-normalised vectors
-    return sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(x * x for x in b) ** 0.5
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
 
 
 def update_centroid(
