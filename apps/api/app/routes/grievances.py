@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Uploa
 from sqlmodel import Session
 
 from app.db import get_session
-from app.models import Grievance
+from app.models import Grievance, User
 from app.schemas import (
     ExtractionResult,
     GrievanceCreate,
@@ -78,6 +78,17 @@ def _grievance_to_read(g: Grievance) -> GrievanceRead:
     )
 
 
+def _get_or_create_user(session: Session, user_id: str) -> User:
+    """Return existing user or auto-create one with the given id."""
+    user = session.get(User, user_id)
+    if user is None:
+        user = User(id=user_id, phone_number=user_id, display_name=user_id)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+    return user
+
+
 @router.post("", response_model=GrievanceResponse)
 def submit_grievance(
     body: GrievanceCreate,
@@ -133,6 +144,9 @@ def submit_grievance(
         grievance_lon=body.longitude,
     )
     action = "join_cluster" if matched else "create_cluster"
+
+    # Ensure user exists (auto-create on first submission)
+    _get_or_create_user(session, body.user_id)
 
     # Create grievance record
     grievance = Grievance(
@@ -288,6 +302,9 @@ def submit_audio_grievance(
         grievance_lon=longitude,
     )
     action = "join_cluster" if matched else "create_cluster"
+
+    # 7. Ensure user exists (auto-create on first submission)
+    _get_or_create_user(session, user_id)
 
     # 7. Persist Grievance
     grievance = Grievance(
