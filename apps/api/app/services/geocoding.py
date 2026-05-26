@@ -29,11 +29,11 @@ def haversine_m(
 # Format: (lat, lon, radius_km) — points within radius_km of centre
 # are inferred to belong to that ward.
 
-_DEMO_WARD_CENTRES: dict[str, tuple[float, float, float]] = {
-    "2": (19.0760, 72.8777, 2.0),   # Ward 2 — approximate Mumbai
-    "4": (19.0800, 72.8900, 2.0),   # Ward 4
-    "8": (19.0700, 72.8800, 2.0),   # Ward 8
-    "11": (19.0900, 72.8950, 2.0),  # Ward 11
+_DEMO_WARD_CENTRES: dict[str, tuple[float, float, float, str]] = {
+    "2": (19.0760, 72.8777, 2.0, "Bandra West"),
+    "4": (19.0800, 72.8900, 2.0, "Byculla"),
+    "8": (19.0700, 72.8800, 2.0, "Dadar"),
+    "11": (19.0900, 72.8950, 2.0, "Andheri West"),
 }
 
 
@@ -46,7 +46,7 @@ def infer_ward(lat: float, lon: float) -> Optional[str]:
     best_ward: Optional[str] = None
     best_dist = float("inf")
 
-    for ward, (wlat, wlon, radius_km) in _DEMO_WARD_CENTRES.items():
+    for ward, (wlat, wlon, radius_km, _area) in _DEMO_WARD_CENTRES.items():
         dist_m = haversine_m(lat, lon, wlat, wlon)
         if dist_m <= radius_km * 1000 and dist_m < best_dist:
             best_ward = ward
@@ -54,6 +54,17 @@ def infer_ward(lat: float, lon: float) -> Optional[str]:
 
     return best_ward
 
+
+def infer_area(lat: float, lon: float) -> str:
+    """Return locality name for coordinates, or empty string."""
+    best_area = ""
+    best_dist = float("inf")
+    for _ward, (wlat, wlon, radius_km, area) in _DEMO_WARD_CENTRES.items():
+        dist_m = haversine_m(lat, lon, wlat, wlon)
+        if dist_m <= radius_km * 1000 and dist_m < best_dist:
+            best_area = area
+            best_dist = dist_m
+    return best_area
 
 def ward_disagrees(
     text_ward: str, lat: float, lon: float, threshold_km: float = 5.0,
@@ -65,6 +76,6 @@ def ward_disagrees(
     """
     if text_ward not in _DEMO_WARD_CENTRES:
         return False
-    wlat, wlon, _ = _DEMO_WARD_CENTRES[text_ward]
+    wlat, wlon, _, _area = _DEMO_WARD_CENTRES[text_ward]
     dist_km = haversine_m(lat, lon, wlat, wlon) / 1000
     return dist_km > threshold_km
