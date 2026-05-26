@@ -309,3 +309,65 @@ class TestFindMatchingCluster:
             grievance_lon=72.8950,
         )
         assert match is None
+
+    def test_haversine_plus_cosine_cross_ward_different_words(self):
+        """Haversine + cosine: different ward, close coords, different words → match."""
+        from app.services.embeddings import embed_to_json
+
+        session = self._session()
+
+        # Cluster in Ward 8 with real centroid embedding + coords
+        cluster = IssueCluster(
+            issue_category="water_supply",
+            ward="8",
+            title="Ward 8 water",
+            summary="no water supply ward 8",
+            status="open",
+            centroid_latitude=19.0700,
+            centroid_longitude=72.8800,
+            centroid_embedding_json=embed_to_json("no water supply ward 8"),
+            embedding_count=1,
+        )
+        session.add(cluster)
+        session.commit()
+
+        # Grievance in Ward 9, ~200m from cluster, completely different words
+        result = _make_result(
+            category="water_supply", ward="9",
+            text="taps are dry no water coming",
+        )
+        match = find_matching_cluster(
+            session, result,
+            grievance_lat=19.0718,
+            grievance_lon=72.8800,
+            grievance_embedding_json=embed_to_json("taps are dry no water coming"),
+        )
+        assert match is not None, (
+            "Should match via haversine + cosine — different ward, different words"
+        )
+        assert match.id == cluster.id
+
+    def test_gps_only_no_ward_clusters_with_jaccard(self):
+        """GPS coords + no ward in text → ward inference → Jaccard match."""
+        session = self._session()
+
+        cluster = IssueCluster(
+            issue_category="water_supply",
+            ward="8",
+            title="Water shortage",
+            summary="paani nahi aa raha ward 8",
+            status="open",
+        )
+        session.add(cluster)
+        session.commit()
+
+        # Grievance: no ward in text, but GPS in Ward 8 area
+        # extraction.ward was filled by infer_ward in the route
+        result = _make_result(category="water_supply", ward="8", text="paani nahi aa raha ward 8")
+        match = find_matching_cluster(
+            session, result,
+            grievance_lat=19.0700,
+            grievance_lon=72.8800,
+        )
+        assert match is not None
+        assert match.id == cluster.id
