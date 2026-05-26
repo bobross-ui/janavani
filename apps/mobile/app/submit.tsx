@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import { AudioRecorder } from "../components/audio-recorder";
 import { ClusterSuggestionCard } from "../components/cluster-suggestion-card";
@@ -12,6 +13,7 @@ const MOCK_USER_ID = "demo-user-1";
 const MOCK_PHONE = "9876543210";
 
 export default function SubmitScreen() {
+  const router = useRouter();
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("hi-Latn");
   const [loading, setLoading] = useState(false);
