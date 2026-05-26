@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCluster } from "../../../lib/api";
+import { ClusterMap } from "../../../components/cluster-map";
 import type { ClusterDetail } from "../../../lib/types";
 
 export default function ClusterDetailPage() {
@@ -43,6 +44,8 @@ export default function ClusterDetailPage() {
           <div className="stat"><span className="value">{cluster.grievance_count}</span><span className="label">reports</span></div>
           <div className="stat"><span className="value">{cluster.support_count}</span><span className="label">supporters</span></div>
         </div>
+
+        <ClusterMap clusters={[cluster]} />
 
         <h2>Redacted grievance samples</h2>
         <div className="samples">
