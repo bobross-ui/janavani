@@ -20,6 +20,13 @@ def get_session():
 
 def create_db_and_tables():
     engine = get_engine()
+    # pgvector extension (safe to run; no-op if already present)
+    with engine.connect() as conn:
+        try:
+            conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
+            conn.commit()
+        except Exception:
+            pass  # SQLite or extension already loaded
     SQLModel.metadata.create_all(engine)
     # ── Schema migration: coordinate_count (1.4) ──────────────────
     # SQLModel.create_all() does not alter existing tables.  This

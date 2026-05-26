@@ -20,7 +20,8 @@ from app.services.ai_provider import (
     get_ai_provider,
 )
 from app.services.audio_storage import AudioStorage
-from app.services.clustering import find_matching_cluster
+from app.services.clustering import find_matching_cluster, update_cluster_embedding
+from app.services.embeddings import embed_to_json
 from app.services.sarvam_client import SarvamError
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,7 @@ def submit_grievance(
     action = "join_cluster" if matched else "create_cluster"
 
     # Create grievance record
+    emb_json = embed_to_json(extraction.normalized_text)
     grievance = Grievance(
         user_id=body.user_id,
         raw_text=body.text,
@@ -145,6 +147,7 @@ def submit_grievance(
         pii_redacted_text=extraction.pii_redacted_text,
         cluster_id=matched.id if matched else None,
         consent_public=body.consent_public,
+        embedding_json=emb_json,
     )
     session.add(grievance)
     session.commit()
@@ -169,6 +172,8 @@ def submit_grievance(
                 matched.centroid_latitude = body.latitude
                 matched.centroid_longitude = body.longitude
             matched.coordinate_count += 1
+        # Update centroid embedding (uses coordinate_count for weight)
+        update_cluster_embedding(matched, emb_json)
         session.add(matched)
         session.commit()
 
@@ -278,6 +283,7 @@ def submit_audio_grievance(
     action = "join_cluster" if matched else "create_cluster"
 
     # 7. Persist Grievance
+    emb_json = embed_to_json(extraction.normalized_text)
     grievance = Grievance(
         user_id=user_id,
         raw_text=transcript,
@@ -295,6 +301,7 @@ def submit_audio_grievance(
         cluster_id=matched.id if matched else None,
         consent_public=consent_public,
         audio_key=audio_key,
+        embedding_json=emb_json,
     )
     session.add(grievance)
     session.commit()
@@ -316,6 +323,7 @@ def submit_audio_grievance(
                 matched.centroid_latitude = latitude
                 matched.centroid_longitude = longitude
             matched.coordinate_count += 1
+        update_cluster_embedding(matched, emb_json)
         session.add(matched)
         session.commit()
 

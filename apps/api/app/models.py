@@ -51,6 +51,9 @@ class Grievance(SQLModel, table=True):
     status: str = Field(default="submitted", index=True)
     consent_public: bool = Field(default=True)
     audio_key: Optional[str] = Field(default=None)
+    # JSON-serialised embedding vector (list of floats).  Stored as
+    # text so it works on both SQLite (tests) and Postgres (prod).
+    embedding_json: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=_now)
 
 
@@ -74,6 +77,8 @@ class IssueCluster(SQLModel, table=True):
     centroid_latitude: Optional[float] = Field(default=None)
     centroid_longitude: Optional[float] = Field(default=None)
     coordinate_count: int = Field(default=0)
+    # JSON-serialised centroid embedding (list of floats).
+    centroid_embedding_json: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 

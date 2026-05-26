@@ -517,3 +517,35 @@
     ward: "8"
   sensitive: []
   expected_redactions: []
+
+# ── Semantic clustering cases (1.3) ──
+
+- id: "sem-tamil-hindi-same-ward"
+  text: "வார்டு 8ல் தண்ணீர் வரவில்லை, டேங்கர் அனுப்பவும்"
+  language: "ta"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
+
+- id: "sem-synonym-no-shared-words"
+  text: "the taps are completely dry, no supply reaching our homes"
+  language: "en"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: ""
+  sensitive: []
+  expected_redactions: []
+
+- id: "sem-different-landmarks-far-apart"
+  text: "water leakage near City Hospital in ward 8"
+  language: "en"
+  expected:
+    category: "water_supply"
+    department: "water_department"
+    ward: "8"
+  sensitive: []
+  expected_redactions: []
