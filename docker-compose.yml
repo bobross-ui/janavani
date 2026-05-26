@@ -36,19 +36,15 @@ services:
       SARVAM_STT_TRANSLATE_MODEL: ${SARVAM_STT_TRANSLATE_MODEL:-saaras:v2.5}
       SARVAM_TRANSLATE_MODEL: ${SARVAM_TRANSLATE_MODEL:-mayura:v1}
       SARVAM_TTS_MODEL: ${SARVAM_TTS_MODEL:-bulbul:v3}
-      SARVAM_CHAT_MODEL: ${SARVAM_CHAT_MODEL:-sarvam-m}
-      SARVAM_TIMEOUT_SECONDS: ${SARVAM_TIMEOUT_SECONDS:-30.0}
-      SARVAM_MAX_RETRIES: ${SARVAM_MAX_RETRIES:-2}
-      SARVAM_FALLBACK_ON_ERROR: ${SARVAM_FALLBACK_ON_ERROR:-true}
-      ALLOW_PROVIDER_OVERRIDE: ${ALLOW_PROVIDER_OVERRIDE:-false}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
 
-  # One-shot seeder: populates demo data. Runs after API is healthy and
-  # tables exist. Set JANAVANI_AUTOSEED=false to skip (container checks env).
   seed:
     build:
       context: .
