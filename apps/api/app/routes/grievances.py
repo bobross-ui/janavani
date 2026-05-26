@@ -105,9 +105,12 @@ def _create_cluster_for_grievance(
         new_cluster.centroid_embedding_json = emb_json
         new_cluster.embedding_count = 1
 
+    # Add cluster first so its ID exists before grievance references it
+    session.add(new_cluster)
+    session.flush()
     grievance.cluster_id = new_cluster.id
     grievance.status = "clustered"
-    session.add_all([grievance, new_cluster])
+    session.add(grievance)
     session.commit()
     session.refresh(new_cluster)
     return new_cluster.id, new_cluster.title
@@ -169,7 +172,7 @@ def submit_grievance(
     )
     action = "join_cluster" if matched else "create_cluster"
 
-    # Create grievance record
+    # Create grievance object (NOT committed yet — cluster decision first)
     grievance = Grievance(
         user_id=body.user_id,
         raw_text=body.text,
@@ -183,16 +186,17 @@ def submit_grievance(
         latitude=body.latitude,
         longitude=body.longitude,
         pii_redacted_text=extraction.pii_redacted_text,
-        cluster_id=matched.id if matched else None,
         consent_public=body.consent_public,
         embedding_json=emb_json,
     )
-    session.add(grievance)
-    session.commit()
-    session.refresh(grievance)
 
     # Update cluster if joined
+    cluster_id = None
+    cluster_title = None
+
     if matched:
+        grievance.cluster_id = matched.id
+        grievance.status = "clustered"
         matched.grievance_count += 1
         # Update cluster centroid using incremental mean weighted by
         # coordinate_count (not grievance_count — historical grievances
@@ -212,18 +216,22 @@ def submit_grievance(
             matched.coordinate_count += 1
         # Update centroid embedding (uses coordinate_count for weight)
         update_cluster_embedding(matched, emb_json)
-        session.add(matched)
+        session.add_all([grievance, matched])
         session.commit()
-
-    # Auto-create cluster when no match found
-    cluster_id = matched.id if matched else None
-    cluster_title = matched.title if matched else None
-
-    if not matched:
+        cluster_id = matched.id
+        cluster_title = matched.title
+    elif not matched:
+        # Create cluster AND grievance in one transaction via shared helper
         cluster_id, cluster_title = _create_cluster_for_grievance(
             session, extraction, final_ward, grievance, emb_json,
             body.latitude, body.longitude,
         )
+    else:
+        # No match and no auto-create — just persist the grievance alone
+        session.add(grievance)
+        session.commit()
+
+    session.refresh(grievance)
 
     return GrievanceResponse(
         grievance=_grievance_to_read(grievance),
@@ -334,7 +342,7 @@ def submit_audio_grievance(
     )
     action = "join_cluster" if matched else "create_cluster"
 
-    # 7. Persist Grievance
+    # 7. Create grievance object (NOT committed yet — cluster decision first)
     grievance = Grievance(
         user_id=user_id,
         raw_text=transcript,
@@ -349,17 +357,18 @@ def submit_audio_grievance(
         latitude=latitude,
         longitude=longitude,
         pii_redacted_text=extraction.pii_redacted_text,
-        cluster_id=matched.id if matched else None,
         consent_public=consent_public,
         audio_key=audio_key,
         embedding_json=emb_json,
     )
-    session.add(grievance)
-    session.commit()
-    session.refresh(grievance)
 
     # Update cluster if joined — centroid + coordinate_count
+    cluster_id = None
+    cluster_title = None
+
     if matched:
+        grievance.cluster_id = matched.id
+        grievance.status = "clustered"
         matched.grievance_count += 1
         if latitude is not None and longitude is not None:
             if matched.centroid_latitude is not None and matched.centroid_longitude is not None:
@@ -375,18 +384,22 @@ def submit_audio_grievance(
                 matched.centroid_longitude = longitude
             matched.coordinate_count += 1
         update_cluster_embedding(matched, emb_json)
-        session.add(matched)
+        session.add_all([grievance, matched])
         session.commit()
-
-    # Auto-create cluster when no match found
-    cluster_id = matched.id if matched else None
-    cluster_title = matched.title if matched else None
-
-    if not matched:
+        cluster_id = matched.id
+        cluster_title = matched.title
+    elif not matched:
+        # Create cluster AND grievance in one transaction via shared helper
         cluster_id, cluster_title = _create_cluster_for_grievance(
             session, extraction, final_ward, grievance, emb_json,
             latitude, longitude,
         )
+    else:
+        # No match and no auto-create — just persist the grievance alone
+        session.add(grievance)
+        session.commit()
+
+    session.refresh(grievance)
 
     return GrievanceResponse(
         grievance=_grievance_to_read(grievance),
