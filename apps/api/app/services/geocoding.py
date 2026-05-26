@@ -105,7 +105,7 @@ import urllib.parse
 from dataclasses import dataclass
 
 _NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-_NOMINATIM_UA = "Janavani/1.0 (demo; contact@example.com)"
+_NOMINATIM_UA = "Janavani/1.0"
 
 # Simple in-memory cache: rounded (lat, lon) → result
 _cache: dict = {}
@@ -141,8 +141,8 @@ def reverse_geocode(lat: float, lon: float) -> LocationResult:
             "addressdetails": 1, "zoom": 18,
         })
         req = urllib.request.Request(
-            f"{_NOMINATUM_URL}?{params}",
-            headers={"User-Agent": _NOMINATUM_UA},
+            f"{_NOMINATIM_URL}?{params}",
+            headers={"User-Agent": _NOMINATIM_UA},
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
