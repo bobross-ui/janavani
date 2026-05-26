@@ -25,5 +25,13 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
+from functools import lru_cache
+
+
 def get_settings() -> Settings:
+    return Settings()
+
+
+@lru_cache(maxsize=1)
+def get_cached_settings() -> Settings:
     return Settings()

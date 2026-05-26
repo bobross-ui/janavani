@@ -13,7 +13,7 @@ from app.schemas import (
     GrievanceRead,
     GrievanceResponse,
 )
-from app.config import get_settings
+from app.config import get_cached_settings
 from app.services.ai_provider import (
     AIProvider,
     LocalAIProvider,
@@ -44,7 +44,7 @@ def _provider_from_name(provider_name: str) -> AIProvider:
 def get_request_ai_provider(
     x_ai_provider: Optional[str] = Header(default=None, alias="X-AI-Provider")
 ) -> AIProvider:
-    settings = get_settings()
+    settings = get_cached_settings()
     if settings.allow_provider_override and isinstance(x_ai_provider, str) and x_ai_provider:
         return _provider_from_name(x_ai_provider)
     return get_ai_provider()
@@ -159,7 +159,7 @@ def submit_grievance(
     provider: AIProvider = Depends(get_request_ai_provider),
     session: Session = Depends(get_session),
 ) -> GrievanceResponse:
-    settings = get_settings()
+    settings = get_cached_settings()
 
     # Extract structured fields
     extraction: ExtractionResult = provider.extract_grievance(
@@ -377,8 +377,11 @@ def submit_audio_grievance(
     detected_language = transcription.detected_language or "unknown"
 
     # 5. Run existing extraction pipeline on the English transcript returned by
-    # 5. Run existing extraction pipeline on the English transcript.
-    extraction: ExtractionResult = provider.extract_grievance(
+    # 5. Extract structured fields using local provider (fast, no API call).
+    #    Sarvam handles STT-translate; local extraction is <50ms vs 1-3s for Sarvam.
+    from app.services.ai_provider import LocalAIProvider
+    _local = LocalAIProvider()
+    extraction: ExtractionResult = _local.extract_grievance(
         transcript, "en-IN"
     )
 
