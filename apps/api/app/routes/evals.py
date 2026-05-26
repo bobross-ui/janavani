@@ -16,6 +16,7 @@ from app.config import get_settings
 from app.db import get_session
 from app.services.ai_provider import AIProvider
 from app.services.clustering import find_matching_cluster
+from app.services.embeddings import embed_to_json
 from app.services.redaction import redact_all
 from app.routes.grievances import get_request_ai_provider
 
@@ -121,7 +122,11 @@ def run_pipeline(
 
     # 4. Cluster match (in-memory read, no persist)
     t4 = time.perf_counter()
-    matched = find_matching_cluster(session, clustering_extraction)
+    emb_json = embed_to_json(clustering_extraction.normalized_text)
+    matched = find_matching_cluster(
+        session, clustering_extraction,
+        grievance_embedding_json=emb_json,
+    )
     cluster_match_ms = (time.perf_counter() - t4) * 1000
 
     total_ms = (time.perf_counter() - t0) * 1000

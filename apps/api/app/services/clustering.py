@@ -148,8 +148,11 @@ def update_cluster_embedding(
         cluster.centroid_embedding_json = grievance_embedding_json
         cluster.embedding_count = 1
     else:
-        # Incremental mean
+        # Incremental mean.  Guard against legacy clusters whose
+        # embedding_count was backfilled as 0 despite having a centroid.
         n = cluster.embedding_count
+        if n <= 0:
+            n = 1
         updated = update_centroid(current_vec, new_vec, n)
         cluster.centroid_embedding_json = json.dumps(updated)
         cluster.embedding_count = n + 1

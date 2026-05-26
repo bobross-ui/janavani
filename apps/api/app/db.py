@@ -44,4 +44,5 @@ def create_db_and_tables():
                 conn.exec_driver_sql(sql)
                 conn.commit()
             except Exception:
+                conn.rollback()
                 pass  # column already exists
