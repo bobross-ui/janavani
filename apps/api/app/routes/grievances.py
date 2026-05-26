@@ -103,16 +103,10 @@ def submit_grievance(
             source_language=extraction.language,
         )
 
-    # Check for matching cluster
-    matched = find_matching_cluster(
-        session, extraction,
-        grievance_lat=body.latitude,
-        grievance_lon=body.longitude,
-    )
-    action = "join_cluster" if matched else "create_cluster"
-
-    # ── Ward inference from coords ──────────────────────────────
+    # ── Ward inference from coords (BEFORE clustering) ──────────
     # When GPS coords are available, infer ward if extraction missed it.
+    # Must run before find_matching_cluster so the inferred ward feeds
+    # into area matching and haversine decisions.
     from app.services.geocoding import infer_ward, ward_disagrees as _ward_disagrees
 
     final_ward = extraction.ward
@@ -120,11 +114,20 @@ def submit_grievance(
         inferred = infer_ward(body.latitude, body.longitude)
         if not final_ward and inferred:
             final_ward = inferred
+            extraction.ward = inferred  # so clustering sees it
         elif final_ward and inferred and _ward_disagrees(final_ward, body.latitude, body.longitude):
             logger.warning(
                 "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
                 final_ward, body.latitude, body.longitude, inferred,
             )
+
+    # Check for matching cluster
+    matched = find_matching_cluster(
+        session, extraction,
+        grievance_lat=body.latitude,
+        grievance_lon=body.longitude,
+    )
+    action = "join_cluster" if matched else "create_cluster"
 
     # Create grievance record
     grievance = Grievance(
@@ -204,6 +207,8 @@ def submit_audio_grievance(
     user_id: str = Form(...),
     language: str = Form(default=""),
     consent_public: bool = Form(default=True),
+    latitude: Optional[float] = Form(default=None),
+    longitude: Optional[float] = Form(default=None),
     provider: AIProvider = Depends(get_request_ai_provider),
     storage: AudioStorage = Depends(get_audio_storage),
     session: Session = Depends(get_session),
@@ -244,16 +249,35 @@ def submit_audio_grievance(
     detected_language = transcription.detected_language or "unknown"
 
     # 5. Run existing extraction pipeline on the English transcript returned by
-    # STT-translate. Store detected_language separately on the grievance record.
+    # 5. Run existing extraction pipeline on the English transcript.
     extraction: ExtractionResult = provider.extract_grievance(
         transcript, "en-IN"
     )
 
+    # ── Ward inference from coords (BEFORE clustering) ──────────
+    from app.services.geocoding import infer_ward, ward_disagrees as _ward_disagrees
+
+    final_ward = extraction.ward
+    if latitude is not None and longitude is not None:
+        inferred = infer_ward(latitude, longitude)
+        if not final_ward and inferred:
+            final_ward = inferred
+            extraction.ward = inferred
+        elif final_ward and inferred and _ward_disagrees(final_ward, latitude, longitude):
+            logger.warning(
+                "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
+                final_ward, latitude, longitude, inferred,
+            )
+
     # 6. Check for matching cluster
-    matched = find_matching_cluster(session, extraction)
+    matched = find_matching_cluster(
+        session, extraction,
+        grievance_lat=latitude,
+        grievance_lon=longitude,
+    )
     action = "join_cluster" if matched else "create_cluster"
 
-    # 8. Persist Grievance with raw_text=transcript, audio_key
+    # 7. Persist Grievance
     grievance = Grievance(
         user_id=user_id,
         raw_text=transcript,
@@ -263,10 +287,10 @@ def submit_audio_grievance(
         issue_category=extraction.category,
         department=extraction.department,
         urgency=extraction.urgency,
-        ward=extraction.ward,
+        ward=final_ward,
         landmark=extraction.landmark,
-        latitude=None,
-        longitude=None,
+        latitude=latitude,
+        longitude=longitude,
         pii_redacted_text=extraction.pii_redacted_text,
         cluster_id=matched.id if matched else None,
         consent_public=consent_public,
@@ -276,9 +300,22 @@ def submit_audio_grievance(
     session.commit()
     session.refresh(grievance)
 
-    # Update cluster if joined (audio path — no coords yet)
+    # Update cluster if joined — centroid + coordinate_count
     if matched:
         matched.grievance_count += 1
+        if latitude is not None and longitude is not None:
+            if matched.centroid_latitude is not None and matched.centroid_longitude is not None:
+                n = matched.coordinate_count
+                matched.centroid_latitude = (
+                    (matched.centroid_latitude * n + latitude) / (n + 1)
+                )
+                matched.centroid_longitude = (
+                    (matched.centroid_longitude * n + longitude) / (n + 1)
+                )
+            else:
+                matched.centroid_latitude = latitude
+                matched.centroid_longitude = longitude
+            matched.coordinate_count += 1
         session.add(matched)
         session.commit()
 
