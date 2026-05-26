@@ -9,6 +9,7 @@ from sqlmodel import Session
 
 from app.db import create_db_and_tables, get_engine
 from app.models import Grievance, IssueCluster, User
+from app.models import _new_uuid
 
 # ── Demo users ────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ USERS = [
     {"phone": "9876543217", "name": "Meena Gupta", "ward": "11", "lang": "hi"},
     {"phone": "9876543218", "name": "Suresh Rao", "ward": "4", "lang": "hi"},
     {"phone": "9876543219", "name": "Kavita Nair", "ward": "4", "lang": "mr"},
+    {"phone": "0000000000", "name": "Demo User", "ward": "8", "lang": "en",
+     "id": "demo-user-1"},
 ]
 
 # ── Mumbai ward coordinates for demo map ─────────────────────────────
@@ -118,6 +121,7 @@ def seed():
         user_objs = []
         for u in USERS:
             user = User(
+                id=u.get("id", _new_uuid()),
                 phone_number=u["phone"],
                 display_name=u["name"],
                 preferred_language=u["lang"],
