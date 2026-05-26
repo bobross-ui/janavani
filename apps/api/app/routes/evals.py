@@ -165,7 +165,13 @@ def get_latest_report() -> JSONResponse:
 
 @router.get("/compare")
 def get_comparison() -> JSONResponse:
-    """Return local and Sarvam eval reports side by side for comparison."""
+    """Return local and Sarvam eval reports side by side for comparison.
+
+    Response schema: ``{"local": report | null, "sarvam": report | null}``.
+    Null means the report file doesn't exist yet (not an error — run
+    bhasha-test to generate it).  A 503 is raised if a report file
+    exists but is malformed.
+    """
     latest_path = _get_report_path()
     sarvam_path = latest_path.parent / "sarvam.json"
 
@@ -176,14 +182,17 @@ def get_comparison() -> JSONResponse:
 
 
 def _load_report(path: Path, label: str) -> Optional[dict]:
-    """Load a single report, returning None if missing (don't 404 the whole comparison)."""
+    """Load a single report.  Returns None if missing; raises 503 if malformed."""
     if not path.exists():
         return None
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except JSONDecodeError as exc:
         logger.warning("Malformed eval report at %s (%s): %s", label, path, exc)
-        return None
+        raise HTTPException(
+            status_code=503,
+            detail=f"Malformed {label} eval report at {path}. Re-run the evaluation.",
+        ) from exc
 
 
 def _serve_report(report_path: Path, label: str) -> JSONResponse:

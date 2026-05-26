@@ -31,7 +31,7 @@ function SummaryCards({ report, label }: { report: EvalReport; label: string }) 
   return (
     <>
       <h3 style={{ textAlign: "center", marginBottom: 12 }}>{label}</h3>
-      <section className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+      <section className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))" }}>
         <div className="panel">
           <p className="eyebrow">Cases</p>
           <h3>{s.passed_cases}/{s.total_cases}</h3>
@@ -77,10 +77,10 @@ function FieldAccuracyTable({ report }: { report: EvalReport }) {
   );
 }
 
-function CaseTable({ report }: { report: EvalReport }) {
+function CaseTable({ report, label }: { report: EvalReport; label: string }) {
   return (
     <section className="panel">
-      <h3>Case details ({report.cases.length} cases)</h3>
+      <h3>{label} ({report.cases.length} cases)</h3>
       <table className="data-table">
         <thead>
           <tr>
@@ -109,6 +109,29 @@ function CaseTable({ report }: { report: EvalReport }) {
   );
 }
 
+function ScorerMetrics({ report, label }: { report: EvalReport; label: string }) {
+  const metrics = report.summary.scorer_metrics;
+  if (!metrics) return null;
+  return (
+    <section className="panel">
+      <h3>Scorer metrics — {label}</h3>
+      <table className="data-table">
+        <thead>
+          <tr><th>Metric</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          {Object.entries(metrics).map(([m, v]) => (
+            <tr key={m}>
+              <td>{m.replace(/_/g, " ")}</td>
+              <td>{typeof v === "number" ? v.toFixed(3) : String(v)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 export default function EvalsPage() {
   const [localReport, setLocalReport] = useState<EvalReport | null>(null);
   const [sarvamReport, setSarvamReport] = useState<EvalReport | null>(null);
@@ -127,13 +150,15 @@ export default function EvalsPage() {
 
   const hasLocal = !!localReport;
   const hasSarvam = !!sarvamReport;
+  const hasNone = !loading && !error && !hasLocal && !hasSarvam;
+  const report = localReport || sarvamReport;
 
   return (
     <>
       <section className="panel">
         <h2>Pipeline evaluation</h2>
         <p className="muted">
-          Extraction, redaction, and clustering quality measured against 53
+          Extraction, redaction, and clustering quality measured against
           multilingual fixtures via <code>bhasha-test</code>. Run locally or
           with Sarvam-M for comparison.
         </p>
@@ -143,38 +168,42 @@ export default function EvalsPage() {
 
       {error ? (
         <div className="error">
-          {error.includes("404") ? (
-            <p>
-              No eval report yet. Run{" "}
-              <code>
-                bhasha-test evaluate data/eval_cases/grievance_cases.yaml
-                --target http://localhost:8000
-                --output data/eval_reports/latest.json
-              </code>
-            </p>
-          ) : (
-            <p>Could not load eval reports: {error}</p>
-          )}
+          <p>Could not load eval reports: {error}</p>
+        </div>
+      ) : null}
+
+      {hasNone ? (
+        <div className="error">
+          <p>No eval reports found.</p>
+          <p>
+            Run{" "}
+            <code>
+              bhasha-test evaluate data/eval_cases/grievance_cases.yaml
+              --target http://localhost:8000
+              --output data/eval_reports/latest.json
+            </code>{" "}
+            and{" "}
+            <code>
+              bhasha-test evaluate ... --provider sarvam
+              --output data/eval_reports/sarvam.json
+            </code>
+          </p>
         </div>
       ) : null}
 
       {!loading && !error && (hasLocal || hasSarvam) ? (
         <>
           {/* Side-by-side summary cards */}
-          <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24 }}>
             {hasLocal ? (
-              <div>
-                <SummaryCards report={localReport!} label="Local (regex)" />
-              </div>
+              <SummaryCards report={localReport!} label="Local (regex)" />
             ) : (
               <div className="panel">
                 <p className="muted">No local report yet.</p>
               </div>
             )}
             {hasSarvam ? (
-              <div>
-                <SummaryCards report={sarvamReport!} label="Sarvam-M (LLM)" />
-              </div>
+              <SummaryCards report={sarvamReport!} label="Sarvam-M (LLM)" />
             ) : (
               <div className="panel">
                 <p className="muted">
@@ -186,56 +215,23 @@ export default function EvalsPage() {
           </section>
 
           {/* Side-by-side field accuracy */}
-          <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 24 }}>
+          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginTop: 24 }}>
             {hasLocal && <FieldAccuracyTable report={localReport!} />}
             {hasSarvam && <FieldAccuracyTable report={sarvamReport!} />}
           </section>
 
-          {/* Scorer metrics (latency) — only for targeted runs */}
+          {/* Scorer metrics (latency) */}
           {(localReport?.summary.scorer_metrics || sarvamReport?.summary.scorer_metrics) ? (
-            <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 24 }}>
-              {localReport?.summary.scorer_metrics ? (
-                <section className="panel">
-                  <h3>Scorer metrics — Local</h3>
-                  <table className="data-table">
-                    <thead>
-                      <tr><th>Metric</th><th>Value</th></tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(localReport.summary.scorer_metrics).map(([m, v]) => (
-                        <tr key={m}>
-                          <td>{m.replace(/_/g, " ")}</td>
-                          <td>{typeof v === "number" ? v.toFixed(3) : String(v)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              ) : null}
-              {sarvamReport?.summary.scorer_metrics ? (
-                <section className="panel">
-                  <h3>Scorer metrics — Sarvam</h3>
-                  <table className="data-table">
-                    <thead>
-                      <tr><th>Metric</th><th>Value</th></tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(sarvamReport.summary.scorer_metrics).map(([m, v]) => (
-                        <tr key={m}>
-                          <td>{m.replace(/_/g, " ")}</td>
-                          <td>{typeof v === "number" ? v.toFixed(3) : String(v)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              ) : null}
+            <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginTop: 24 }}>
+              {hasLocal && <ScorerMetrics report={localReport!} label="Local" />}
+              {hasSarvam && <ScorerMetrics report={sarvamReport!} label="Sarvam" />}
             </section>
           ) : null}
 
-          {/* Case breakdown — full width */}
-          <section style={{ marginTop: 24 }}>
-            {hasLocal && <CaseTable report={localReport!} />}
+          {/* Case breakdown — side-by-side */}
+          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 24, marginTop: 24 }}>
+            {hasLocal && <CaseTable report={localReport!} label="Local cases" />}
+            {hasSarvam && <CaseTable report={sarvamReport!} label="Sarvam cases" />}
           </section>
         </>
       ) : null}
