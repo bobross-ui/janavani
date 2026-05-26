@@ -1,6 +1,9 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
+# react-leaflet@4.2.1 peers on React 18; project uses React 19.
+# --legacy-peer-deps is a temporary workaround. Track upstream:
+# https://github.com/PaulLeCam/react-leaflet/issues
 RUN npm ci --legacy-peer-deps
 
 FROM node:24-alpine AS builder

@@ -36,14 +36,21 @@ services:
       SARVAM_STT_TRANSLATE_MODEL: ${SARVAM_STT_TRANSLATE_MODEL:-saaras:v2.5}
       SARVAM_TRANSLATE_MODEL: ${SARVAM_TRANSLATE_MODEL:-mayura:v1}
       SARVAM_TTS_MODEL: ${SARVAM_TTS_MODEL:-bulbul:v3}
+      SARVAM_CHAT_MODEL: ${SARVAM_CHAT_MODEL:-sarvam-m}
+      SARVAM_TIMEOUT_SECONDS: ${SARVAM_TIMEOUT_SECONDS:-30.0}
+      SARVAM_MAX_RETRIES: ${SARVAM_MAX_RETRIES:-2}
+      SARVAM_FALLBACK_ON_ERROR: ${SARVAM_FALLBACK_ON_ERROR:-true}
+      ALLOW_PROVIDER_OVERRIDE: ${ALLOW_PROVIDER_OVERRIDE:-false}
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
       interval: 5s
       timeout: 5s
       retries: 5
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   seed:
     build:
