@@ -25,6 +25,16 @@ USERS = [
     {"phone": "9876543219", "name": "Kavita Nair", "ward": "4", "lang": "mr"},
 ]
 
+# ── Mumbai ward coordinates for demo map ─────────────────────────────
+
+# (approximate centroids for demo visibility)
+WARD_COORDS = {
+    "2": (19.028, 72.849),   # Bandra West
+    "4": (18.995, 72.835),   # Byculla
+    "8": (19.043, 72.857),   # Khar West
+    "11": (19.107, 72.856),  # Andheri West
+}
+
 # ── Demo grievances ───────────────────────────────────────────────────
 
 WATER_GRIEVANCES_WARD8 = [
@@ -119,6 +129,7 @@ def seed():
         print(f"  Created {len(user_objs)} users")
 
         # Water cluster + grievances — Ward 8
+        w8_lat, w8_lon = WARD_COORDS["8"]
         water_cluster = IssueCluster(
             title="Water shortage in Ward 8",
             summary="Multiple citizens in Ward 8 report no water supply for 3+ days. Tankers have not arrived.",
@@ -129,6 +140,9 @@ def seed():
             grievance_count=len(WATER_GRIEVANCES_WARD8),
             support_count=3,
             urgency_score=0.85,
+            centroid_latitude=w8_lat,
+            centroid_longitude=w8_lon,
+            coordinate_count=len(WATER_GRIEVANCES_WARD8),
         )
         session.add(water_cluster)
         session.commit()
@@ -143,6 +157,8 @@ def seed():
                 department="water_department",
                 urgency="high",
                 ward="8",
+                latitude=w8_lat,
+                longitude=w8_lon,
                 pii_redacted_text=text,
                 cluster_id=water_cluster.id,
                 status="clustered",
@@ -152,6 +168,7 @@ def seed():
         print(f"  Created {len(WATER_GRIEVANCES_WARD8)} water grievances (Ward 8)")
 
         # Garbage cluster + grievances — Ward 11
+        w11_lat, w11_lon = WARD_COORDS["11"]
         garbage_cluster = IssueCluster(
             title="Garbage not collected in Ward 11",
             summary="Citizens in Ward 11 report garbage has not been collected for over a week. Piles accumulating on streets.",
@@ -162,6 +179,9 @@ def seed():
             grievance_count=len(GARBAGE_GRIEVANCES_WARD11),
             support_count=2,
             urgency_score=0.70,
+            centroid_latitude=w11_lat,
+            centroid_longitude=w11_lon,
+            coordinate_count=len(GARBAGE_GRIEVANCES_WARD11),
         )
         session.add(garbage_cluster)
         session.commit()
@@ -176,6 +196,8 @@ def seed():
                 department="sanitation_department",
                 urgency="medium",
                 ward="11",
+                latitude=w11_lat,
+                longitude=w11_lon,
                 pii_redacted_text=text,
                 cluster_id=garbage_cluster.id,
                 status="clustered",
@@ -187,6 +209,7 @@ def seed():
         )
 
         # Roads cluster — Ward 4
+        w4_lat, w4_lon = WARD_COORDS["4"]
         road_cluster = IssueCluster(
             title="Pothole on main road Ward 4",
             summary="Large pothole on main road in Ward 4 causing accidents and traffic. Residents demand immediate repair.",
@@ -197,6 +220,9 @@ def seed():
             grievance_count=len(ROAD_GRIEVANCES_WARD4),
             support_count=1,
             urgency_score=0.60,
+            centroid_latitude=w4_lat,
+            centroid_longitude=w4_lon,
+            coordinate_count=len(ROAD_GRIEVANCES_WARD4),
         )
         session.add(road_cluster)
         session.commit()
@@ -211,6 +237,8 @@ def seed():
                 department="public_works",
                 urgency="medium",
                 ward="4",
+                latitude=w4_lat,
+                longitude=w4_lon,
                 pii_redacted_text=text,
                 cluster_id=road_cluster.id,
                 status="clustered",
@@ -220,6 +248,7 @@ def seed():
         print(f"  Created {len(ROAD_GRIEVANCES_WARD4)} road grievances (Ward 4)")
 
         # Electricity — Ward 2 (ungrouped, to test new cluster creation)
+        w2_lat, w2_lon = WARD_COORDS["2"]
         for i, (text, lang, norm) in enumerate(ELECTRICITY_WARD2):
             g = Grievance(
                 user_id=user_objs[0].id,
@@ -230,6 +259,8 @@ def seed():
                 department="electricity_department",
                 urgency="high",
                 ward="2",
+                latitude=w2_lat,
+                longitude=w2_lon,
                 pii_redacted_text=text,
                 status="submitted",
                 consent_public=True,
