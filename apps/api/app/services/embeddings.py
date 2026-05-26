@@ -47,8 +47,9 @@ def embed(text: str) -> Optional[list[float]]:
     model = _get_model()
     if model is None:
         return None
-    # Prepend "query: " for e5 models (improves retrieval quality)
-    vec = model.encode(f"query: {text}", normalize_embeddings=True)
+    # Symmetric comparison — no prefix (both grievance and cluster
+    # centroid are civic complaints, not query-vs-document pairs).
+    vec = model.encode(text, normalize_embeddings=True)
     return vec.tolist()
 
 
