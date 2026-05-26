@@ -115,7 +115,7 @@ def _create_cluster_for_grievance(
         centroid_longitude=lon,
         coordinate_count=1 if (lat is not None and lon is not None) else 0,
         area=area,
-        area_source="demo_mumbai",
+        area_source="demo_mumbai" if area else "",
     )
     # Initialize embedding so subsequent submissions can match
     if emb_json is not None:
@@ -180,6 +180,7 @@ def submit_grievance(
                 "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
                 final_ward, body.latitude, body.longitude, inferred,
             )
+            area = ""  # suppress GPS area when ward sources conflict
 
     area = infer_area(body.latitude, body.longitude) if body.latitude is not None and body.longitude is not None else ""
 
@@ -210,7 +211,7 @@ def submit_grievance(
         longitude=body.longitude,
         pii_redacted_text=extraction.pii_redacted_text,
         area=area,
-        area_source="demo_mumbai",
+        area_source="demo_mumbai" if area else "",
         consent_public=body.consent_public,
         embedding_json=emb_json,
     )
@@ -368,6 +369,7 @@ def submit_audio_grievance(
                 "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
                 final_ward, latitude, longitude, inferred,
             )
+            area = ""  # suppress GPS area when ward sources conflict
 
     area = infer_area(latitude, longitude) if latitude is not None and longitude is not None else ""
 
@@ -399,7 +401,7 @@ def submit_audio_grievance(
         longitude=longitude,
         pii_redacted_text=extraction.pii_redacted_text,
         area=area,
-        area_source="demo_mumbai",
+        area_source="demo_mumbai" if area else "",
         consent_public=consent_public,
         audio_key=audio_key,
         embedding_json=emb_json,

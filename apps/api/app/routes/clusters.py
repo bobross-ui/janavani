@@ -96,6 +96,8 @@ def get_cluster(
         issue_category=cluster.issue_category,
         department=cluster.department,
         ward=cluster.ward,
+        area=cluster.area,
+        area_source=cluster.area_source,
         landmark=cluster.landmark,
         status=cluster.status,
         support_count=cluster.support_count,
