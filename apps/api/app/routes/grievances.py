@@ -100,7 +100,11 @@ def submit_grievance(
         )
 
     # Check for matching cluster
-    matched = find_matching_cluster(session, extraction)
+    matched = find_matching_cluster(
+        session, extraction,
+        grievance_lat=body.latitude,
+        grievance_lon=body.longitude,
+    )
     action = "join_cluster" if matched else "create_cluster"
 
     # Create grievance record
@@ -127,6 +131,19 @@ def submit_grievance(
     # Update cluster if joined
     if matched:
         matched.grievance_count += 1
+        # Update cluster centroid as incremental mean of grievance coords
+        if body.latitude is not None and body.longitude is not None:
+            n = matched.grievance_count  # already incremented
+            if matched.centroid_latitude is not None and matched.centroid_longitude is not None:
+                matched.centroid_latitude = (
+                    (matched.centroid_latitude * (n - 1) + body.latitude) / n
+                )
+                matched.centroid_longitude = (
+                    (matched.centroid_longitude * (n - 1) + body.longitude) / n
+                )
+            else:
+                matched.centroid_latitude = body.latitude
+                matched.centroid_longitude = body.longitude
         session.add(matched)
         session.commit()
 
@@ -237,7 +254,7 @@ def submit_audio_grievance(
     session.commit()
     session.refresh(grievance)
 
-    # Update cluster if joined
+    # Update cluster if joined (audio path — no coords yet)
     if matched:
         matched.grievance_count += 1
         session.add(matched)

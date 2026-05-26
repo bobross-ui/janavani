@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ScrollView, StyleSheet, Text } from "react-native";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
+import * as Location from "expo-location";
 import { AudioRecorder } from "../components/audio-recorder";
 import { ClusterSuggestionCard } from "../components/cluster-suggestion-card";
 import { GrievanceForm } from "../components/grievance-form";
@@ -16,6 +17,23 @@ export default function SubmitScreen() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GrievanceResponse | null>(null);
   const [error, setError] = useState("");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationConsent, setLocationConsent] = useState<string | null>(null); // "granted" | "denied"
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationConsent(status);
+      if (status === "granted") {
+        try {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        } catch {
+          // GPS may be unavailable; submit without location fallback
+        }
+      }
+    })();
+  }, []);
 
   const handleSubmit = async () => {
     if (!text.trim()) return;
@@ -28,6 +46,7 @@ export default function SubmitScreen() {
         text: text.trim(),
         language,
         consent_public: true,
+        ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
       });
       setResult(res);
     } catch (e: any) {
@@ -71,6 +90,25 @@ export default function SubmitScreen() {
         loading={loading}
         onSubmit={handleSubmit}
       />
+
+      {/* Location status chip */}
+      {locationConsent === "granted" && coords ? (
+        <Text style={styles.locationChip}>
+          📍 Location used — {coords.latitude.toFixed(4)}, {coords.longitude.toFixed(4)}
+        </Text>
+      ) : locationConsent === "denied" ? (
+        <TouchableOpacity
+          onPress={async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            setLocationConsent(status);
+          }}
+        >
+          <Text style={styles.locationChip}>
+            📍 Location not shared — tap to enable
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
       <AudioRecorder onRecordingComplete={handleAudioComplete} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {result ? (
@@ -91,6 +129,16 @@ export default function SubmitScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+  locationChip: {
+    fontSize: 12,
+    color: "#4a5568",
+    backgroundColor: "#edf2f7",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignSelf: "flex-start",
+    marginBottom: 16,
+  },
   error: {
     color: "#e53e3e",
     marginTop: 12,

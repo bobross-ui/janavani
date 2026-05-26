@@ -257,3 +257,55 @@ class TestFindMatchingCluster:
             f"dual-pivot bug: text → cluster {text_cluster_id}, "
             f"voice → cluster {voice_cluster_id}"
         )
+
+    def test_haversine_override_crosses_ward_boundary(self):
+        """Two grievances <300m apart but in different wards → same cluster."""
+        session = self._session()
+
+        # Create a water cluster with centroid in Ward 8 area
+        cluster = IssueCluster(
+            issue_category="water_supply",
+            ward="8",
+            title="Water issue near ward boundary",
+            summary="no water supply near boundary",
+            status="open",
+            centroid_latitude=19.0700,
+            centroid_longitude=72.8800,
+        )
+        session.add(cluster)
+        session.commit()
+
+        # Grievance says Ward 9 but coords are ~200m from Ward 8 centroid
+        result = _make_result(category="water_supply", ward="9", text="no water supply near boundary")
+        match = find_matching_cluster(
+            session, result,
+            grievance_lat=19.0718,  # ~200m from cluster centroid
+            grievance_lon=72.8800,
+        )
+        assert match is not None
+        assert match.id == cluster.id
+
+    def test_haversine_no_override_when_too_far(self):
+        """Coords > 300m apart → no match despite same category + text."""
+        session = self._session()
+
+        cluster = IssueCluster(
+            issue_category="water_supply",
+            ward="8",
+            title="Ward 8 water",
+            summary="no water supply ward 8",
+            status="open",
+            centroid_latitude=19.0700,
+            centroid_longitude=72.8800,
+        )
+        session.add(cluster)
+        session.commit()
+
+        # Grievance 2 km away — too far for haversine override
+        result = _make_result(category="water_supply", ward="9", text="paani nahi aa raha")
+        match = find_matching_cluster(
+            session, result,
+            grievance_lat=19.0900,  # ~2 km away
+            grievance_lon=72.8950,
+        )
+        assert match is None

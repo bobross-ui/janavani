@@ -23,7 +23,8 @@
     "react-native-screens": "~4.16.0",
     "react-native-web": "^0.21.0",
     "react-dom": "19.1.0",
-    "expo-av": "~15.0.0"
+    "expo-av": "~15.0.0",
+    "expo-location": "~18.0.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",

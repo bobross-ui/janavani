@@ -21,6 +21,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export function submitGrievance(body: {
   user_id: string; text: string; language: string; consent_public: boolean;
+  latitude?: number; longitude?: number;
 }): Promise<GrievanceResponse> {
   return request<GrievanceResponse>("/grievances", { method: "POST", body: JSON.stringify(body) });
 }
