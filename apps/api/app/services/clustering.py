@@ -108,7 +108,7 @@ def find_matching_cluster(
         else:
             overlap = _token_overlap(extraction.normalized_text, cluster.title)
 
-        if overlap > best_overlap:
+        if overlap >= best_overlap:
             best_overlap = overlap
             best_match = cluster
 

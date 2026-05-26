@@ -21,3 +21,15 @@ def get_session():
 def create_db_and_tables():
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
+    # ── Schema migration: coordinate_count (1.4) ──────────────────
+    # SQLModel.create_all() does not alter existing tables.  This
+    # migration adds the column when upgrading from a previous schema.
+    with engine.connect() as conn:
+        try:
+            conn.exec_driver_sql(
+                "ALTER TABLE issue_clusters "
+                "ADD COLUMN coordinate_count INTEGER NOT NULL DEFAULT 0"
+            )
+            conn.commit()
+        except Exception:
+            pass  # column already exists (fresh DB or already migrated)
