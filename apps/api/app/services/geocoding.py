@@ -32,7 +32,7 @@ def haversine_m(
 _DEMO_WARD_CENTRES: dict[str, tuple[float, float, float, str]] = {
     "2": (19.028, 72.849, 4.0, "Bandra West"),
     "4": (18.995, 72.835, 4.0, "Byculla"),
-    "8": (19.043, 72.857, 4.0, "Dadar"),
+    "8": (19.043, 72.857, 4.0, "Khar West"),
     "11": (19.107, 72.856, 4.0, "Andheri West"),
 }
 

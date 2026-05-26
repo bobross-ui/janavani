@@ -43,8 +43,6 @@ class Grievance(SQLModel, table=True):
     department: str = Field(default="")
     urgency: str = Field(default="medium")
     ward: str = Field(default="", index=True)
-    area: str = Field(default="")
-    area_source: str = Field(default="")
     landmark: str = Field(default="")
     latitude: Optional[float] = Field(default=None)
     longitude: Optional[float] = Field(default=None)

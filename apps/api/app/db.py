@@ -39,6 +39,11 @@ def create_db_and_tables():
             "ALTER TABLE grievances ADD COLUMN embedding_json TEXT",
             "ALTER TABLE issue_clusters ADD COLUMN centroid_embedding_json TEXT",
             "ALTER TABLE issue_clusters ADD COLUMN embedding_count INTEGER NOT NULL DEFAULT 0",
+            # area-based location
+            "ALTER TABLE grievances ADD COLUMN area TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE grievances ADD COLUMN area_source TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE issue_clusters ADD COLUMN area TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE issue_clusters ADD COLUMN area_source TEXT NOT NULL DEFAULT ''",
         ]:
             try:
                 conn.exec_driver_sql(sql)

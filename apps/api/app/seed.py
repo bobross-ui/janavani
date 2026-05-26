@@ -34,7 +34,7 @@ USERS = [
 WARD_COORDS = {
     "2": (19.028, 72.849),   # Bandra West
     "4": (18.995, 72.835),   # Byculla
-    "8": (19.043, 72.857),   # Khar West
+    "8": (19.043, 72.857),   # Khar West (matches geocoding)
     "11": (19.107, 72.856),  # Andheri West
 }
 
@@ -135,12 +135,12 @@ def seed():
         # Water cluster + grievances — Ward 8
         w8_lat, w8_lon = WARD_COORDS["8"]
         water_cluster = IssueCluster(
-            title="Water Supply near Dadar, Ward 8",
+            title="Water Supply near Khar West, Ward 8",
             summary="Multiple citizens in Ward 8 report no water supply for 3+ days. Tankers have not arrived.",
             issue_category="water_supply",
             department="water_department",
             ward="8",
-            area="Dadar",
+            area="Khar West",
             area_source="demo_mumbai",
             status="open",
             grievance_count=len(WATER_GRIEVANCES_WARD8),
@@ -168,6 +168,8 @@ def seed():
                 pii_redacted_text=text,
                 cluster_id=water_cluster.id,
                 status="clustered",
+                area="Khar West",
+                area_source="demo_mumbai",
                 consent_public=True,
             )
             session.add(g)
@@ -209,6 +211,8 @@ def seed():
                 pii_redacted_text=text,
                 cluster_id=garbage_cluster.id,
                 status="clustered",
+                area="Andheri West",
+                area_source="demo_mumbai",
                 consent_public=True,
             )
             session.add(g)
@@ -252,6 +256,8 @@ def seed():
                 pii_redacted_text=text,
                 cluster_id=road_cluster.id,
                 status="clustered",
+                area="Byculla",
+                area_source="demo_mumbai",
                 consent_public=True,
             )
             session.add(g)
@@ -273,6 +279,8 @@ def seed():
                 longitude=w2_lon,
                 pii_redacted_text=text,
                 status="submitted",
+                area="Bandra West",
+                area_source="demo_mumbai",
                 consent_public=True,
             )
             session.add(g)
