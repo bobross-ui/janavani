@@ -99,10 +99,53 @@ return placeholders or raise `SarvamError` indicating the capability is unavaila
 |---------|------|------|
 | `extraction.py` | Keyword sets, ward regex, urgency patterns | Shared by LocalAIProvider |
 | `redaction.py` | Phone/Aadhaar/email regex redaction | Called post-extraction |
-| `clustering.py` | Jaccard token overlap + category/ward match | Cluster suggestion |
+| `clustering.py` | Hybrid cosine/Jaccard + category + haversine | Cluster suggestion |
+| `embeddings.py` | Lazy-loaded multilingual-e5-small model | Semantic similarity vectors |
 | `ai_provider.py` | Provider protocol + implementations + fallback | All AI operations |
 | `sarvam_client.py` | HTTP client with retry + auth | Sarvam API calls |
 | `audio_storage.py` | File-based audio persistence | Save/load/delete audio |
+| `geocoding.py` | Haversine distance + demo ward inference | Location-aware matching |
+
+## Clustering architecture
+
+Janavani uses a three-gate approach for cluster matching:
+
+```
+Grievance arrives
+     │
+     ▼
+┌─────────────────────────┐
+│ Gate 1: CATEGORY (hard) │  water ≠ garbage, always enforced
+└────────────┬────────────┘
+             │ pass
+             ▼
+┌─────────────────────────┐
+│ Gate 2: TEXT SIMILARITY │
+│                         │
+│ Primary: cosine on      │  "no water supply" matches
+│   embeddings (τ=0.78)   │  "taps are dry" (no shared
+│                         │  words, same meaning)
+│ Fallback: Jaccard token │  Only when embeddings model
+│   overlap (τ=0.15)      │  not installed (dev/demo)
+└────────────┬────────────┘
+             │ pass
+             ▼
+┌─────────────────────────┐
+│ Gate 3: LOCATION        │
+│                         │
+│ Same ward number   OR   │  Ward boundary override:
+│ Haversine ≤ 300m        │  two complaints 200m apart
+│                         │  in different wards still
+│                         │  match (same intersection)
+└────────────┬────────────┘
+             │ pass
+             ▼
+       CLUSTER MATCH
+```
+
+All three gates must pass. Category prevents cross-topic false positives regardless of text similarity. Text (cosine) catches synonyms and cross-language complaints after English-pivot translation. Location ensures spatial relevance — a water complaint in Mumbai doesn't cluster with a water complaint in Delhi even if both say "water not coming."
+
+**In production**, the embedding model is always loaded and Jaccard is never used. The Python candidate loop is replaced by a pgvector ANN query directly in Postgres. The architecture (category → cosine → location) is production-correct; the implementation is demo-grade.
 
 ## Data model (simplified)
 
