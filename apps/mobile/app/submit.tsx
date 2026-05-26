@@ -69,6 +69,10 @@ export default function SubmitScreen() {
       } as any);
       formData.append("user_id", MOCK_USER_ID);
       formData.append("consent_public", "true");
+      if (coords) {
+        formData.append("latitude", String(coords.latitude));
+        formData.append("longitude", String(coords.longitude));
+      }
 
       const res = await uploadAudioGrievance(formData);
       setResult(res);
