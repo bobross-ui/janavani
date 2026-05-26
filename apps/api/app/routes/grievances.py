@@ -106,14 +106,18 @@ def _create_cluster_for_grievance(
         new_cluster.embedding_count = 1
 
     # Add cluster first so its ID exists before grievance references it
-    session.add(new_cluster)
-    session.flush()
-    grievance.cluster_id = new_cluster.id
-    grievance.status = "clustered"
-    session.add(grievance)
-    session.commit()
-    session.refresh(new_cluster)
-    return new_cluster.id, new_cluster.title
+    try:
+        session.add(new_cluster)
+        session.flush()
+        grievance.cluster_id = new_cluster.id
+        grievance.status = "clustered"
+        session.add(grievance)
+        session.commit()
+        session.refresh(new_cluster)
+        return new_cluster.id, new_cluster.title
+    except Exception:
+        session.rollback()
+        raise
 
 
 @router.post("", response_model=GrievanceResponse)
@@ -220,16 +224,12 @@ def submit_grievance(
         session.commit()
         cluster_id = matched.id
         cluster_title = matched.title
-    elif not matched:
+    else:
         # Create cluster AND grievance in one transaction via shared helper
         cluster_id, cluster_title = _create_cluster_for_grievance(
             session, extraction, final_ward, grievance, emb_json,
             body.latitude, body.longitude,
         )
-    else:
-        # No match and no auto-create — just persist the grievance alone
-        session.add(grievance)
-        session.commit()
 
     session.refresh(grievance)
 
@@ -388,16 +388,12 @@ def submit_audio_grievance(
         session.commit()
         cluster_id = matched.id
         cluster_title = matched.title
-    elif not matched:
+    else:
         # Create cluster AND grievance in one transaction via shared helper
         cluster_id, cluster_title = _create_cluster_for_grievance(
             session, extraction, final_ward, grievance, emb_json,
             latitude, longitude,
         )
-    else:
-        # No match and no auto-create — just persist the grievance alone
-        session.add(grievance)
-        session.commit()
 
     session.refresh(grievance)
 
