@@ -30,10 +30,10 @@ def haversine_m(
 # are inferred to belong to that ward.
 
 _DEMO_WARD_CENTRES: dict[str, tuple[float, float, float, str]] = {
-    "2": (19.0760, 72.8777, 2.0, "Bandra West"),
-    "4": (19.0800, 72.8900, 2.0, "Byculla"),
-    "8": (19.0700, 72.8800, 2.0, "Dadar"),
-    "11": (19.0900, 72.8950, 2.0, "Andheri West"),
+    "2": (19.028, 72.849, 4.0, "Bandra West"),
+    "4": (18.995, 72.835, 4.0, "Byculla"),
+    "8": (19.043, 72.857, 4.0, "Dadar"),
+    "11": (19.107, 72.856, 4.0, "Andheri West"),
 }
 
 

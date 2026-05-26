@@ -43,6 +43,8 @@ class Grievance(SQLModel, table=True):
     department: str = Field(default="")
     urgency: str = Field(default="medium")
     ward: str = Field(default="", index=True)
+    area: str = Field(default="")
+    area_source: str = Field(default="")
     landmark: str = Field(default="")
     latitude: Optional[float] = Field(default=None)
     longitude: Optional[float] = Field(default=None)
@@ -54,6 +56,8 @@ class Grievance(SQLModel, table=True):
     # JSON-serialised embedding vector (list of floats).  Stored as
     # text so it works on both SQLite (tests) and Postgres (prod).
     embedding_json: Optional[str] = Field(default=None)
+    area: str = Field(default="")
+    area_source: str = Field(default="")
     created_at: datetime = Field(default_factory=_now)
 
 
@@ -69,6 +73,8 @@ class IssueCluster(SQLModel, table=True):
     issue_category: str = Field(default="other", index=True)
     department: str = Field(default="")
     ward: str = Field(default="", index=True)
+    area: str = Field(default="")
+    area_source: str = Field(default="")
     landmark: str = Field(default="")
     status: str = Field(default="open", index=True)
     support_count: int = Field(default=0)
