@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { ClusterRead } from "../lib/types";
@@ -29,7 +29,6 @@ function markerRadius(count: number): number {
 
 function ClusterMarkers({ clusters }: { clusters: ClusterRead[] }) {
   const map = useMap();
-  const prevLen = useRef(0);
 
   useEffect(() => {
     if (clusters.length > 0) {
@@ -46,7 +45,6 @@ function ClusterMarkers({ clusters }: { clusters: ClusterRead[] }) {
         map.fitBounds(bounds.pad(0.3));
       }
     }
-    prevLen.current = clusters.length;
   }, [clusters, map]);
 
   return (
