@@ -160,7 +160,33 @@ def get_latest_report() -> JSONResponse:
     data/eval_reports/latest.json. Returns 404 if no report exists yet,
     503 if the report file is malformed.
     """
-    report_path = _get_report_path()
+    return _serve_report(_get_report_path(), "latest")
+
+
+@router.get("/compare")
+def get_comparison() -> JSONResponse:
+    """Return local and Sarvam eval reports side by side for comparison."""
+    latest_path = _get_report_path()
+    sarvam_path = latest_path.parent / "sarvam.json"
+
+    local = _load_report(latest_path, "latest")
+    sarvam = _load_report(sarvam_path, "sarvam")
+
+    return JSONResponse(content={"local": local, "sarvam": sarvam})
+
+
+def _load_report(path: Path, label: str) -> Optional[dict]:
+    """Load a single report, returning None if missing (don't 404 the whole comparison)."""
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except JSONDecodeError as exc:
+        logger.warning("Malformed eval report at %s (%s): %s", label, path, exc)
+        return None
+
+
+def _serve_report(report_path: Path, label: str) -> JSONResponse:
     if not report_path.exists():
         raise HTTPException(
             status_code=404,

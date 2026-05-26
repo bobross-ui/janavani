@@ -59,3 +59,7 @@ export { API_BASE_URL };
 export function getLatestEvalReport(): Promise<Record<string, unknown>> {
   return request<Record<string, unknown>>("/evals/latest");
 }
+
+export function getEvalComparison(): Promise<{ local: Record<string, unknown> | null; sarvam: Record<string, unknown> | null }> {
+  return request<{ local: Record<string, unknown> | null; sarvam: Record<string, unknown> | null }>("/evals/compare");
+}
