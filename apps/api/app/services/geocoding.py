@@ -26,14 +26,31 @@ def haversine_m(
 # ── Demo ward bounding boxes ─────────────────────────────────────────
 # These are approximate centre points for the demo wards in seed.py.
 # A real deployment would use a geocoding service (Nominatim, Google).
-# Format: (lat, lon, radius_km) — points within radius_km of centre
-# are inferred to belong to that ward.
+# Format: (lat, lon, radius_km, area_name) — points within radius_km of
+# the nearest centre are assigned that ward and area name.
 
 _DEMO_WARD_CENTRES: dict[str, tuple[float, float, float, str]] = {
-    "2": (19.028, 72.849, 4.0, "Bandra West"),
-    "4": (18.995, 72.835, 4.0, "Byculla"),
-    "8": (19.043, 72.857, 4.0, "Khar West"),
-    "11": (19.107, 72.856, 4.0, "Andheri West"),
+    "2":  (19.028, 72.849, 7.0, "Bandra West"),
+    "4":  (18.995, 72.835, 7.0, "Byculla"),
+    "8":  (19.043, 72.857, 7.0, "Khar West"),
+    "11": (19.107, 72.856, 7.0, "Andheri West"),
+    "1":  (18.906, 72.823, 7.0, "Colaba"),
+    "3":  (18.960, 72.810, 7.0, "Worli"),
+    "5":  (19.017, 72.857, 7.0, "Dadar"),
+    "6":  (19.060, 72.830, 7.0, "Mahim"),
+    "7":  (19.130, 72.840, 7.0, "Juhu"),
+    "9":  (19.075, 72.890, 7.0, "Kurla"),
+    "10": (19.050, 72.930, 7.0, "Ghatkopar"),
+    "12": (19.080, 72.910, 7.0, "Chembur"),
+    "13": (19.120, 72.910, 7.0, "Powai"),
+    "14": (19.050, 72.840, 7.0, "Santacruz"),
+    "15": (19.100, 72.830, 7.0, "Vile Parle"),
+    "16": (19.020, 72.860, 7.0, "Lower Parel"),
+    "17": (19.230, 72.850, 7.0, "Borivali"),
+    "18": (19.190, 72.850, 7.0, "Malad"),
+    "19": (19.160, 72.850, 7.0, "Goregaon"),
+    "20": (19.200, 72.970, 7.0, "Mulund"),
+    "21": (19.150, 72.960, 7.0, "Bhandup"),
 }
 
 

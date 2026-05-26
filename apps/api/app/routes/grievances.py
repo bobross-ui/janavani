@@ -84,11 +84,12 @@ def _cluster_title(extraction, final_ward: str, area: str) -> str:
     cat = extraction.category.replace("_", " ").title()
     if area and final_ward:
         return f"{cat} near {area}, Ward {final_ward}"
-    elif area:
+    if area:
         return f"{cat} near {area}"
-    elif final_ward:
+    if final_ward:
         return f"{cat} in Ward {final_ward}"
-    return f"{cat} near reported location"
+    # GPS exists but no match — better than showing nothing
+    return f"{cat} near submitted location"
 
 def _create_cluster_for_grievance(
     session: Session,
