@@ -118,3 +118,7 @@ function btoa(input: string): string {
   }
   return output;
 }
+
+export function listMyGrievances(userId: string): Promise<Grievance[]> {
+  return request<Grievance[]>(`/grievances?user_id=${encodeURIComponent(userId)}&limit=50`);
+}

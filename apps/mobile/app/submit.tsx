@@ -125,6 +125,12 @@ export default function SubmitScreen() {
             userId={MOCK_USER_ID}
             grievanceId={result.grievance.id}
           />
+          <TouchableOpacity
+            style={styles.viewReportsButton}
+            onPress={() => router.push("/profile")}
+          >
+            <Text style={styles.viewReportsText}>View My Reports</Text>
+          </TouchableOpacity>
         </>
       ) : null}
     </ScrollView>
@@ -151,4 +157,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
   },
+  viewReportsButton: {
+    backgroundColor: "#E6F4FE",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  viewReportsText: { color: "#2b6cb0", fontSize: 15, fontWeight: "600" },
 });

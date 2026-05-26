@@ -1,119 +1,197 @@
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const MOCK_USER = {
-  display_name: "Demo Citizen",
-  phone: "9876543210",
-  ward: "8",
-  language: "Hinglish",
-};
+import { listMyGrievances } from "../lib/api";
+import type { Grievance } from "../lib/types";
+
+const USER_ID = "demo-user-1";
+
+function statusColor(status: string): string {
+  if (status === "clustered") return "#38a169";
+  if (status === "submitted") return "#d69e2e";
+  return "#a0aec0";
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [reports, setReports] = useState<Grievance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchReports = () => {
+    listMyGrievances(USER_ID)
+      .then(setReports)
+      .catch((e) => setError(e.message))
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
+  };
+
+  useEffect(() => { fetchReports(); }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchReports();
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {MOCK_USER.display_name.slice(0, 1)}
-        </Text>
-      </View>
-      <Text style={styles.name}>{MOCK_USER.display_name}</Text>
-      <Text style={styles.phone}>+91 {MOCK_USER.phone}</Text>
-
-      <View style={styles.infoCard}>
-        <Row label="Ward" value={MOCK_USER.ward} />
-        <Row label="Preferred language" value={MOCK_USER.language} />
-        <Row label="Account" value="Demo (mock login)" />
-      </View>
-
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => router.push("/submit")}
-        >
-          <Text style={styles.primaryButtonText}>Submit a new grievance</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => router.push("/clusters")}
-        >
-          <Text style={styles.secondaryButtonText}>Browse public issues</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.footnote}>
-        This is a demo profile. Real OTP login, identity verification, and a
-        full submission history are out of scope for the MVP.
-      </Text>
-    </View>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
-    </View>
+    <FlatList
+      data={reports}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.list}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>D</Text>
+          </View>
+          <Text style={styles.name}>Demo Citizen</Text>
+          <Text style={styles.subtitle}>My Reports</Text>
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={() => router.push("/submit")}
+          >
+            <Text style={styles.submitButtonText}>+ New Report</Text>
+          </TouchableOpacity>
+        </View>
+      }
+      ListEmptyComponent={
+        !loading ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>No reports yet</Text>
+            <Text style={styles.emptySub}>
+              Submit your first grievance to see it here.
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={() => router.push("/submit")}
+            >
+              <Text style={styles.emptyButtonText}>Submit a report</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null
+      }
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardText} numberOfLines={2}>
+              {item.pii_redacted_text || item.normalized_text || item.raw_text}
+            </Text>
+            <View
+              style={[
+                styles.statusPill,
+                { backgroundColor: statusColor(item.status) + "20" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: statusColor(item.status) },
+                ]}
+              >
+                {item.status}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.cardMeta}>
+            <Text style={styles.metaText}>
+              {item.issue_category.replace(/_/g, " ")} · {item.urgency}
+            </Text>
+            {item.ward ? (
+              <Text style={styles.metaText}>Ward {item.ward}</Text>
+            ) : null}
+            <Text style={styles.metaText}>
+              {new Date(item.created_at).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+      )}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 24 },
+  list: { paddingBottom: 40 },
+  header: {
+    alignItems: "center",
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 24,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: "#2b6cb0",
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "center",
-    marginTop: 12,
+    marginBottom: 8,
   },
-  avatarText: { color: "#fff", fontSize: 32, fontWeight: "800" },
-  name: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#1a365d",
-    textAlign: "center",
-    marginTop: 12,
-  },
-  phone: { fontSize: 14, color: "#718096", textAlign: "center", marginTop: 4 },
-  infoCard: {
-    marginTop: 28,
+  avatarText: { color: "#fff", fontSize: 28, fontWeight: "800" },
+  name: { fontSize: 18, fontWeight: "700", color: "#1a365d" },
+  subtitle: { fontSize: 13, color: "#718096", marginTop: 2 },
+  submitButton: {
+    marginTop: 14,
+    backgroundColor: "#2b6cb0",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: "#f7fafc",
+  },
+  submitButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  empty: { alignItems: "center", padding: 40 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#1a365d" },
+  emptySub: { fontSize: 13, color: "#718096", marginTop: 4 },
+  emptyButton: {
+    marginTop: 16,
+    backgroundColor: "#2b6cb0",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  card: {
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },
-  row: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 8,
+    alignItems: "flex-start",
+    gap: 8,
   },
-  rowLabel: { fontSize: 14, color: "#4a5568" },
-  rowValue: { fontSize: 14, color: "#1a202c", fontWeight: "600" },
-  actions: { marginTop: 24, gap: 12 },
-  primaryButton: {
-    backgroundColor: "#2b6cb0",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
+  cardText: { fontSize: 14, color: "#1a202c", flex: 1, lineHeight: 20 },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  primaryButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  secondaryButton: {
-    backgroundColor: "#E6F4FE",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
+  statusText: { fontSize: 11, fontWeight: "600", textTransform: "capitalize" },
+  cardMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
   },
-  secondaryButtonText: { color: "#2b6cb0", fontSize: 15, fontWeight: "600" },
-  footnote: {
-    fontSize: 12,
-    color: "#a0aec0",
-    textAlign: "center",
-    marginTop: 32,
-    lineHeight: 18,
-  },
+  metaText: { fontSize: 11, color: "#718096" },
 });

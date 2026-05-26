@@ -1,8 +1,8 @@
-from typing import Optional
+from typing import List, Optional
 
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from sqlmodel import Session
 
 from app.db import get_session
@@ -240,6 +240,24 @@ def submit_grievance(
         matched_cluster_title=cluster_title,
         suggested_action=action,
     )
+
+
+@router.get("", response_model=List[GrievanceRead])
+def list_grievances(
+    user_id: str = Query(..., description="Filter by user ID"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+) -> List[GrievanceRead]:
+    grievances = (
+        session.query(Grievance)
+        .filter(Grievance.user_id == user_id)
+        .order_by(Grievance.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [_grievance_to_read(g) for g in grievances]
 
 
 @router.get("/{grievance_id}", response_model=GrievanceRead)
