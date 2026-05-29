@@ -60,3 +60,15 @@ def create_db_and_tables():
             except Exception:
                 conn.rollback()
                 pass  # column already exists
+
+        # ── Unique constraint: one support per user per cluster ──
+        try:
+            conn.exec_driver_sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_cluster_support_user "
+                "ON cluster_supports (cluster_id, user_id)"
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            pass  # constraint already exists
+    # ── end migration

@@ -93,6 +93,7 @@ class TestClustersAPI:
             raw_text="paani nahi",
             issue_category="water_supply",
             ward="8",
+            cluster_id=cluster.id,
         )
         session.add_all([cluster, grievance])
         session.commit()
@@ -107,6 +108,157 @@ class TestClustersAPI:
         )
         assert resp.status_code == 200
         assert resp.json()["support_count"] == 1
+
+    def test_support_cluster_idempotent(self):
+        """Duplicate support should return already_supported."""
+        session = self._session()
+        user = _seed_user(session)
+        cluster = IssueCluster(
+            issue_category="water_supply",
+            ward="8",
+            title="Water",
+        )
+        grievance = Grievance(
+            user_id=user.id,
+            raw_text="paani nahi",
+            issue_category="water_supply",
+            ward="8",
+            cluster_id=cluster.id,
+        )
+        session.add_all([cluster, grievance])
+        session.commit()
+
+        body = {
+            "user_id": user.id,
+            "grievance_id": grievance.id,
+            "consent_to_file": True,
+        }
+        r1 = self.client.post(f"/clusters/{cluster.id}/support", json=body)
+        assert r1.status_code == 200
+        assert r1.json()["status"] == "supported"
+        assert r1.json()["support_count"] == 1
+
+        r2 = self.client.post(f"/clusters/{cluster.id}/support", json=body)
+        assert r2.status_code == 200
+        assert r2.json()["status"] == "already_supported"
+        assert r2.json()["support_count"] == 1  # not incremented
+
+    def test_support_cluster_rejects_other_users_grievance(self):
+        """403 when grievance.user_id != body.user_id."""
+        session = self._session()
+        user_a = _seed_user(session)
+        user_b = User(phone_number="1111111111", ward="8")
+        session.add(user_b)
+        cluster = IssueCluster(
+            issue_category="water_supply",
+            ward="8",
+            title="Water",
+        )
+        grievance = Grievance(
+            user_id=user_b.id,
+            raw_text="paani nahi",
+            issue_category="water_supply",
+            ward="8",
+            cluster_id=cluster.id,
+        )
+        session.add_all([cluster, grievance])
+        session.commit()
+
+        resp = self.client.post(
+            f"/clusters/{cluster.id}/support",
+            json={
+                "user_id": user_a.id,  # different from grievance.user_id
+                "grievance_id": grievance.id,
+                "consent_to_file": True,
+            },
+        )
+        assert resp.status_code == 403
+
+    def test_support_cluster_rejects_wrong_cluster_grievance(self):
+        """400 when grievance.cluster_id != cluster_id."""
+        session = self._session()
+        user = _seed_user(session)
+        cluster_a = IssueCluster(
+            issue_category="water_supply", ward="8", title="Water A",
+        )
+        cluster_b = IssueCluster(
+            issue_category="sanitation", ward="8", title="Water B",
+        )
+        grievance = Grievance(
+            user_id=user.id,
+            raw_text="paani nahi",
+            issue_category="water_supply",
+            ward="8",
+            cluster_id=cluster_a.id,
+        )
+        session.add_all([cluster_a, cluster_b, grievance])
+        session.commit()
+
+        resp = self.client.post(
+            f"/clusters/{cluster_b.id}/support",
+            json={
+                "user_id": user.id,
+                "grievance_id": grievance.id,
+                "consent_to_file": True,
+            },
+        )
+        assert resp.status_code == 400
+
+    def test_support_cluster_rejects_missing_user(self):
+        """404 when user doesn't exist."""
+        session = self._session()
+        cluster = IssueCluster(
+            issue_category="water_supply", ward="8", title="Water",
+        )
+        session.add(cluster)
+        session.commit()
+
+        resp = self.client.post(
+            f"/clusters/{cluster.id}/support",
+            json={
+                "user_id": "nonexistent-user",
+                "grievance_id": "nonexistent-grievance",
+                "consent_to_file": True,
+            },
+        )
+        assert resp.status_code == 404
+
+    def test_get_cluster_viewer_has_supported(self):
+        """Cluster detail shows viewer_has_supported=true after support."""
+        session = self._session()
+        user = _seed_user(session)
+        cluster = IssueCluster(
+            issue_category="water_supply",
+            ward="8",
+            title="Water",
+        )
+        grievance = Grievance(
+            user_id=user.id,
+            raw_text="paani nahi",
+            issue_category="water_supply",
+            ward="8",
+            cluster_id=cluster.id,
+        )
+        session.add_all([cluster, grievance])
+        session.commit()
+
+        # Before support: false
+        r0 = self.client.get(f"/clusters/{cluster.id}?user_id={user.id}")
+        assert r0.status_code == 200
+        assert r0.json()["viewer_has_supported"] == False
+
+        # After support: true
+        self.client.post(
+            f"/clusters/{cluster.id}/support",
+            json={
+                "user_id": user.id,
+                "grievance_id": grievance.id,
+                "consent_to_file": True,
+            },
+        )
+        r1 = self.client.get(f"/clusters/{cluster.id}?user_id={user.id}")
+        assert r1.status_code == 200
+        assert r1.json()["viewer_has_supported"] == True
 
 
 class TestAdminAPI:

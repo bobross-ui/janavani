@@ -126,6 +126,7 @@ class RedactedGrievanceSample(BaseModel):
 
 class ClusterDetail(ClusterRead):
     sample_grievances: list[RedactedGrievanceSample] = []
+    viewer_has_supported: bool = False
 
 
 class ClusterSupportCreate(BaseModel):

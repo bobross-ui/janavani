@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlmodel import Field, SQLModel
+from sqlalchemy import UniqueConstraint
 
 
 def _new_uuid() -> str:
@@ -102,6 +103,10 @@ class IssueCluster(SQLModel, table=True):
 
 class ClusterSupport(SQLModel, table=True):
     __tablename__ = "cluster_supports"
+    __table_args__ = (
+        # One support per user per cluster — enforced at DB level
+        UniqueConstraint("cluster_id", "user_id", name="uq_cluster_support_user"),
+    )
 
     id: str = Field(default_factory=_new_uuid, primary_key=True)
     cluster_id: str = Field(foreign_key="issue_clusters.id", index=True)
