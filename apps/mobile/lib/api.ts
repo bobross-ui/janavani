@@ -13,21 +13,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...options,
   };
-  console.log("[api] request", url, fetchOptions.method || "GET");
   try {
     const res = await fetch(url, fetchOptions);
     if (!res.ok) {
       const text = await res.text();
-      console.log("[api] request FAIL", res.status, text.slice(0, 200));
       throw new Error(`${res.status}: ${text}`);
     }
-    const data = await res.json();
-    console.log("[api] request OK", res.status, typeof data, Array.isArray(data) ? `[${data.length} items]` : "");
-    return data;
+    return await res.json();
   } catch (e: any) {
     // Distinguish fetch-level error from HTTP error
     if (e instanceof TypeError || e?.message?.includes("Network")) {
-      console.log("[api] request NETWORK ERROR:", { url, message: e?.message, name: e?.name, cause: e?.cause });
       throw new Error(`Network error: ${e?.message} (${url})`);
     }
     throw e;
