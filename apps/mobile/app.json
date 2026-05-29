@@ -10,8 +10,12 @@
       "bundleIdentifier": "com.janavani.citizen"
     },
     "android": {
-      "package": "com.janavani.citizen"
+      "package": "com.janavani.citizen",
+      "usesCleartextTraffic": true
     },
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ]
   }
 }
