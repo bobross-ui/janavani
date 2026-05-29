@@ -34,9 +34,11 @@ def _same_area(
     haversine_threshold_m: float = 300.0,
 ) -> bool:
     """Check whether a grievance and cluster are in the same area."""
-    if extraction_ward and cluster.ward and extraction_ward == cluster.ward:
+    # Same ward — strongest signal
+    if extraction_ward and cluster.ward and extraction_ward.strip() == cluster.ward.strip():
         return True
 
+    # Haversine proximity
     if (
         extraction_lat is not None and extraction_lon is not None
         and cluster.centroid_latitude is not None
@@ -48,6 +50,11 @@ def _same_area(
         )
         if dist <= haversine_threshold_m:
             return True
+
+    # No ward AND no coords: can't determine area — allow semantic match
+    # (caller uses stronger threshold via _token_overlap / cosine)
+    if not extraction_ward and extraction_lat is None and extraction_lon is None:
+        return True
 
     return False
 
@@ -75,18 +82,31 @@ def find_matching_cluster(
     to avoid redundant model inference.
     """
     has_coords = grievance_lat is not None and grievance_lon is not None
+    ward = (extraction.ward or "").strip()
+    has_ward = bool(ward)
 
     if has_coords:
+        # GPS available: filter by category + status, use haversine for area
         statement = (
             select(IssueCluster)
             .where(IssueCluster.issue_category == extraction.category)
             .where(IssueCluster.status.in_(["open", "drafted"]))
         )
-    else:
+    elif has_ward:
+        # Ward available but no GPS: filter by category + ward + status
         statement = (
             select(IssueCluster)
             .where(IssueCluster.issue_category == extraction.category)
-            .where(IssueCluster.ward == extraction.ward)
+            .where(IssueCluster.ward == ward)
+            .where(IssueCluster.status.in_(["open", "drafted"]))
+        )
+    else:
+        # No ward AND no GPS: filter by category + status only,
+        # rely entirely on semantic similarity with stricter thresholds.
+        # _same_area allows through (no location data to check).
+        statement = (
+            select(IssueCluster)
+            .where(IssueCluster.issue_category == extraction.category)
             .where(IssueCluster.status.in_(["open", "drafted"]))
         )
 
@@ -98,7 +118,7 @@ def find_matching_cluster(
 
     for cluster in candidates:
         if not _same_area(
-            extraction.ward,
+            ward,
             grievance_lat, grievance_lon,
             cluster,
             haversine_threshold_m,
@@ -109,14 +129,16 @@ def find_matching_cluster(
 
         if grievance_embedding is not None and cluster_embedding is not None:
             score = cosine_similarity(grievance_embedding, cluster_embedding)
-            threshold = cosine_threshold
+            # Stricter threshold when no location data available
+            threshold = 0.88 if (not has_ward and not has_coords) else cosine_threshold
         else:
             # Jaccard fallback: at least one side lacks embeddings
             if cluster.summary:
                 score = _token_overlap(extraction.normalized_text, cluster.summary)
             else:
                 score = _token_overlap(extraction.normalized_text, cluster.title)
-            threshold = similarity_threshold
+            # Stricter threshold when no location data available
+            threshold = 0.35 if (not has_ward and not has_coords) else similarity_threshold
 
         if score >= threshold and score > best_score:
             best_score = score

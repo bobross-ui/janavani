@@ -66,10 +66,10 @@ class TestGrievanceFlow:
         assert data["extraction"]["ward"] == "8"
         assert data["extraction"]["urgency"] == "high"
         assert data["suggested_action"] == "create_cluster"
-        assert data["matched_cluster_id"] is not None
+        assert data["matched_cluster_id"] is None
         assert data["grievance"]["id"]
         assert data["grievance"]["status"] == "clustered"
-        assert data["grievance"]["cluster_id"] == data["matched_cluster_id"]
+        assert data["grievance"]["cluster_id"] is not None
 
     def test_second_similar_complaint_joins_cluster(self):
         session = self._session()
@@ -87,7 +87,7 @@ class TestGrievanceFlow:
         assert resp1.status_code == 200
         data1 = resp1.json()
         assert data1["suggested_action"] == "create_cluster"
-        cluster_id = data1["matched_cluster_id"]
+        cluster_id = data1["grievance"]["cluster_id"]
         assert cluster_id is not None
 
         # Second grievance should join the cluster created by the first

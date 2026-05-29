@@ -285,8 +285,8 @@ def submit_grievance(
     return GrievanceResponse(
         grievance=_grievance_to_read(grievance),
         extraction=extraction,
-        matched_cluster_id=cluster_id,
-        matched_cluster_title=cluster_title,
+        matched_cluster_id=cluster_id if matched else None,
+        matched_cluster_title=cluster_title if matched else None,
         suggested_action=action,
     )
 
@@ -483,7 +483,7 @@ def submit_audio_grievance(
     return GrievanceResponse(
         grievance=_grievance_to_read(grievance),
         extraction=extraction,
-        matched_cluster_id=cluster_id,
-        matched_cluster_title=cluster_title,
+        matched_cluster_id=cluster_id if matched else None,
+        matched_cluster_title=cluster_title if matched else None,
         suggested_action=action,
     )
