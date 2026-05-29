@@ -4,6 +4,7 @@ import type { ClusterRead } from "../lib/types";
 interface Props {
   clusters: ClusterRead[];
   tappable?: boolean;
+  height?: number;
 }
 
 /** Web stub — react-native-maps is native-only. Shows a location summary instead. */
