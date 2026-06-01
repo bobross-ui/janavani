@@ -388,14 +388,14 @@ def submit_audio_grievance(
                    f"Allowed: {', '.join(sorted(_ALLOWED_AUDIO_MIME_TYPES))}",
         )
 
-    # 2. Read bytes from UploadFile
-    audio_bytes = audio.file.read()
+    # 2. Read at most the cap (+1 byte) so an oversized upload is rejected
+    #    without materializing an unbounded body in memory.
+    audio_bytes = audio.file.read(_MAX_AUDIO_SIZE + 1)
 
     if len(audio_bytes) > _MAX_AUDIO_SIZE:
         raise HTTPException(
             status_code=413,
-            detail=f"Audio too large: {len(audio_bytes)} bytes "
-                   f"(max {_MAX_AUDIO_SIZE} bytes / 10 MB)",
+            detail=f"Audio too large (max {_MAX_AUDIO_SIZE} bytes / 10 MB)",
         )
 
     # 3. Persist via AudioStorage.save_audio → audio_key
