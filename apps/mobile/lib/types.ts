@@ -43,6 +43,12 @@ export interface ClusterRead {
   issue_category: string;
   department: string;
   ward: string;
+  area: string;
+  area_source: string;
+  suburb: string;
+  road: string;
+  sector: string;
+  landmark: string;
   status: string;
   support_count: number;
   grievance_count: number;

@@ -110,6 +110,12 @@ export default function ClusterDetailScreen() {
 
   const urgent = cluster.urgency_score > 0.7;
   const shortId = cluster.id.slice(0, 8);
+  // Granular geocoded location (road / suburb / area), de-duplicated. The
+  // ward/locality anchor already lives in the title.
+  const locationLine = [cluster.road, cluster.suburb || cluster.area]
+    .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .join(" · ");
 
   return (
     <SafeAreaView style={styles.shell} edges={["top"]}>
@@ -144,6 +150,12 @@ export default function ClusterDetailScreen() {
           <Text style={styles.title}>{cluster.title}</Text>
           {cluster.summary ? (
             <Text style={styles.lede}>{cluster.summary}</Text>
+          ) : null}
+          {locationLine ? (
+            <View style={styles.locationRow}>
+              <Icon name="pin" size={13} stroke={T.inkSoft} />
+              <Text style={styles.locationText}>{locationLine}</Text>
+            </View>
           ) : null}
         </View>
 
@@ -234,6 +246,19 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: T.inkSoft,
     maxWidth: 340,
+  },
+  locationRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  locationText: {
+    fontFamily: T.mono,
+    fontSize: 11,
+    letterSpacing: 0.4,
+    color: T.inkSoft,
+    textTransform: "uppercase",
   },
 
   statsRow: {

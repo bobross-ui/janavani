@@ -211,7 +211,7 @@ function ClusterRow({
       <View style={styles.clusterMeta}>
         <Text style={styles.clusterMetaText}>
           {humanize(cluster.issue_category)}
-          {cluster.ward ? ` · Ward ${cluster.ward}` : ""}
+          {cluster.area ? ` · ${cluster.area}` : cluster.ward ? ` · Ward ${cluster.ward}` : ""}
           {" · "}
           {relativeAge(cluster.created_at)}
         </Text>
