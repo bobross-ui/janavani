@@ -136,13 +136,15 @@ def seed():
         # Water cluster + grievances — Ward 8
         w8_lat, w8_lon = WARD_COORDS["8"]
         water_cluster = IssueCluster(
-            title="Water Supply near Khar West, Ward 8",
+            title="Water Supply, Ward 8",
             summary="Multiple citizens in Ward 8 report no water supply for 3+ days. Tankers have not arrived.",
             issue_category="water_supply",
             department="water_department",
             ward="8",
             area="Khar West",
             area_source="demo_mumbai",
+            suburb="Khar West",
+            road="S.V. Road",
             status="open",
             grievance_count=len(WATER_GRIEVANCES_WARD8),
             support_count=3,
@@ -182,13 +184,15 @@ def seed():
         # Garbage cluster + grievances — Ward 11
         w11_lat, w11_lon = WARD_COORDS["11"]
         garbage_cluster = IssueCluster(
-            title="Sanitation near Andheri West, Ward 11",
+            title="Sanitation, Ward 11",
             summary="Citizens in Ward 11 report garbage has not been collected for over a week. Piles accumulating on streets.",
             issue_category="sanitation",
             department="sanitation_department",
             ward="11",
             area="Andheri West",
             area_source="demo_mumbai",
+            suburb="Andheri West",
+            road="Lokhandwala Road",
             status="open",
             grievance_count=len(GARBAGE_GRIEVANCES_WARD11),
             support_count=2,
@@ -230,13 +234,15 @@ def seed():
         # Roads cluster — Ward 4
         w4_lat, w4_lon = WARD_COORDS["4"]
         road_cluster = IssueCluster(
-            title="Roads near Byculla, Ward 4",
+            title="Roads, Ward 4",
             summary="Large pothole on main road in Ward 4 causing accidents and traffic. Residents demand immediate repair.",
             issue_category="roads",
             department="public_works",
             ward="4",
             area="Byculla",
             area_source="demo_mumbai",
+            suburb="Byculla",
+            road="Clare Road",
             status="open",
             grievance_count=len(ROAD_GRIEVANCES_WARD4),
             support_count=1,
