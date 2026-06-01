@@ -78,10 +78,12 @@ services:
     build:
       context: apps/web
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* must be set at build time (it is inlined into the client
+      # bundle); a runtime `environment:` var would have no effect here.
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     depends_on:
       - api
 
