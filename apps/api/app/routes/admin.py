@@ -4,29 +4,10 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.models import ComplaintDraft, IssueCluster
 from app.schemas import ClusterRead, ComplaintDraftRead
+from app.routes.clusters import cluster_to_read
 from app.services.draft_generation import generate_complaint_draft
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-def _cluster_to_read(c: IssueCluster) -> ClusterRead:
-    return ClusterRead(
-        id=c.id,
-        title=c.title,
-        summary=c.summary,
-        issue_category=c.issue_category,
-        department=c.department,
-        ward=c.ward,
-        landmark=c.landmark,
-        status=c.status,
-        support_count=c.support_count,
-        grievance_count=c.grievance_count,
-        urgency_score=c.urgency_score,
-        centroid_latitude=c.centroid_latitude,
-        centroid_longitude=c.centroid_longitude,
-        created_at=c.created_at,
-        updated_at=c.updated_at,
-    )
 
 
 @router.get("/clusters", response_model=list[ClusterRead])
@@ -37,7 +18,7 @@ def list_admin_clusters(
         IssueCluster.grievance_count.desc()
     )
     clusters = session.exec(statement).all()
-    return [_cluster_to_read(c) for c in clusters]
+    return [cluster_to_read(c) for c in clusters]
 
 
 @router.post("/clusters/{cluster_id}/draft", response_model=ComplaintDraftRead)

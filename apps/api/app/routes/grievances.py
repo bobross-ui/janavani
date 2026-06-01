@@ -164,6 +164,134 @@ def _create_cluster_for_grievance(
         raise
 
 
+def _finalize_grievance(
+    session: Session,
+    extraction: ExtractionResult,
+    *,
+    user_id: str,
+    raw_text: str,
+    language: str,
+    consent_public: bool,
+    latitude: Optional[float],
+    longitude: Optional[float],
+    transcript_text: str = "",
+    audio_key: Optional[str] = None,
+) -> GrievanceResponse:
+    """Shared tail for the text and audio grievance endpoints.
+
+    Given an already-extracted (and pivot-translated) ``extraction``, infer
+    ward/area/location from coords, embed once, find or create a cluster,
+    persist the grievance, and build the response. The two endpoints differ
+    only in how they obtain ``extraction`` and a few grievance fields
+    (raw_text, transcript_text, language, audio_key).
+    """
+    from app.services.geocoding import (
+        infer_area,
+        infer_ward,
+        resolve_location,
+        ward_disagrees,
+    )
+
+    has_coords = latitude is not None and longitude is not None
+    inferred_ward = infer_ward(latitude, longitude) if has_coords else None
+
+    # Ward inference from coords (BEFORE clustering): fill a missing ward, or
+    # log when the text-provided ward disagrees with the coordinates.
+    final_ward = extraction.ward
+    if has_coords:
+        if not final_ward and inferred_ward:
+            final_ward = inferred_ward
+            extraction.ward = inferred_ward  # so clustering sees it
+        elif final_ward and inferred_ward and ward_disagrees(final_ward, latitude, longitude):
+            logger.warning(
+                "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
+                final_ward, latitude, longitude, inferred_ward,
+            )
+
+    area = infer_area(latitude, longitude) if has_coords else ""
+    location = resolve_location(session, latitude, longitude) if has_coords else None
+
+    # Suppress GPS-derived area/location when the text ward conflicts with coords.
+    if final_ward and inferred_ward and ward_disagrees(final_ward, latitude, longitude):
+        area = ""
+        location = None
+
+    # Compute the embedding once (shared between clustering and persistence).
+    emb_json = embed_to_json(extraction.normalized_text)
+
+    matched = find_matching_cluster(
+        session, extraction,
+        grievance_embedding_json=emb_json,
+        grievance_lat=latitude,
+        grievance_lon=longitude,
+    )
+    action = "join_cluster" if matched else "create_cluster"
+
+    grievance = Grievance(
+        user_id=user_id,
+        raw_text=raw_text,
+        transcript_text=transcript_text,
+        normalized_text=extraction.normalized_text,
+        language=language,
+        issue_category=extraction.category,
+        department=extraction.department,
+        urgency=extraction.urgency,
+        ward=final_ward,
+        landmark=extraction.landmark,
+        latitude=latitude,
+        longitude=longitude,
+        pii_redacted_text=extraction.pii_redacted_text,
+        area=location.area if location else area,
+        area_source=location.source if location else ("demo_mumbai" if area else ""),
+        suburb=location.suburb if location else "",
+        road=location.road if location else "",
+        sector=location.sector if location else "",
+        location_json=location.raw_json if location else None,
+        consent_public=consent_public,
+        audio_key=audio_key,
+        embedding_json=emb_json,
+    )
+
+    cluster_id = None
+    cluster_title = None
+
+    if matched:
+        grievance.cluster_id = matched.id
+        grievance.status = "clustered"
+        matched.grievance_count += 1
+        # Update the centroid via incremental mean weighted by coordinate_count
+        # (historical grievances without coords don't contribute to it).
+        if has_coords:
+            if matched.centroid_latitude is not None and matched.centroid_longitude is not None:
+                n = matched.coordinate_count
+                matched.centroid_latitude = (matched.centroid_latitude * n + latitude) / (n + 1)
+                matched.centroid_longitude = (matched.centroid_longitude * n + longitude) / (n + 1)
+            else:
+                matched.centroid_latitude = latitude
+                matched.centroid_longitude = longitude
+            matched.coordinate_count += 1
+        update_cluster_embedding(matched, emb_json)
+        session.add_all([grievance, matched])
+        session.commit()
+        cluster_id = matched.id
+        cluster_title = matched.title
+    else:
+        cluster_id, cluster_title = _create_cluster_for_grievance(
+            session, extraction, final_ward, grievance, emb_json,
+            latitude, longitude, area, location,
+        )
+
+    session.refresh(grievance)
+
+    return GrievanceResponse(
+        grievance=_grievance_to_read(grievance),
+        extraction=extraction,
+        matched_cluster_id=cluster_id if matched else None,
+        matched_cluster_title=cluster_title if matched else None,
+        suggested_action=action,
+    )
+
+
 @router.post("", response_model=GrievanceResponse)
 def submit_grievance(
     body: GrievanceCreate,
@@ -190,115 +318,15 @@ def submit_grievance(
             source_language=extraction.language,
         )
 
-    # ── Ward inference from coords (BEFORE clustering) ──────────
-    # When GPS coords are available, infer ward if extraction missed it.
-    # Must run before find_matching_cluster so the inferred ward feeds
-    # into area matching and haversine decisions.
-    from app.services.geocoding import infer_area, infer_ward, resolve_location, ward_disagrees as _ward_disagrees
-
-    final_ward = extraction.ward
-    if body.latitude is not None and body.longitude is not None:
-        inferred = infer_ward(body.latitude, body.longitude)
-        if not final_ward and inferred:
-            final_ward = inferred
-            extraction.ward = inferred  # so clustering sees it
-        elif final_ward and inferred and _ward_disagrees(final_ward, body.latitude, body.longitude):
-            logger.warning(
-                "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
-                final_ward, body.latitude, body.longitude, inferred,
-            )
-
-    area = infer_area(body.latitude, body.longitude) if body.latitude is not None and body.longitude is not None else ""
-    location = resolve_location(session, body.latitude, body.longitude) if body.latitude is not None and body.longitude is not None else None
-
-    # Suppress GPS-derived area when ward sources conflict (after location resolution)
-    if body.latitude is not None and body.longitude is not None:
-        inferred = infer_ward(body.latitude, body.longitude)
-        if inferred and _ward_disagrees(final_ward, body.latitude, body.longitude) if final_ward else False:
-            area = ""
-            location = None
-
-    # Compute embedding once (shared between clustering and persistence)
-    emb_json = embed_to_json(extraction.normalized_text)
-
-    # Check for matching cluster
-    matched = find_matching_cluster(
-        session, extraction,
-        grievance_embedding_json=emb_json,
-        grievance_lat=body.latitude,
-        grievance_lon=body.longitude,
-    )
-    action = "join_cluster" if matched else "create_cluster"
-
-    # Create grievance object (NOT committed yet — cluster decision first)
-    grievance = Grievance(
+    return _finalize_grievance(
+        session,
+        extraction,
         user_id=body.user_id,
         raw_text=body.text,
-        normalized_text=extraction.normalized_text,
         language=extraction.language,
-        issue_category=extraction.category,
-        department=extraction.department,
-        urgency=extraction.urgency,
-        ward=final_ward,
-        landmark=extraction.landmark,
+        consent_public=body.consent_public,
         latitude=body.latitude,
         longitude=body.longitude,
-        pii_redacted_text=extraction.pii_redacted_text,
-        area=location.area if location else area,
-        area_source=location.source if location else ("demo_mumbai" if area else ""),
-        suburb=location.suburb if location else "",
-        road=location.road if location else "",
-        sector=location.sector if location else "",
-        location_json=location.raw_json if location else None,
-        consent_public=body.consent_public,
-        embedding_json=emb_json,
-    )
-
-    # Update cluster if joined
-    cluster_id = None
-    cluster_title = None
-
-    if matched:
-        grievance.cluster_id = matched.id
-        grievance.status = "clustered"
-        matched.grievance_count += 1
-        # Update cluster centroid using incremental mean weighted by
-        # coordinate_count (not grievance_count — historical grievances
-        # without coords don't contribute to centroid).
-        if body.latitude is not None and body.longitude is not None:
-            if matched.centroid_latitude is not None and matched.centroid_longitude is not None:
-                n = matched.coordinate_count
-                matched.centroid_latitude = (
-                    (matched.centroid_latitude * n + body.latitude) / (n + 1)
-                )
-                matched.centroid_longitude = (
-                    (matched.centroid_longitude * n + body.longitude) / (n + 1)
-                )
-            else:
-                matched.centroid_latitude = body.latitude
-                matched.centroid_longitude = body.longitude
-            matched.coordinate_count += 1
-        # Update centroid embedding (uses coordinate_count for weight)
-        update_cluster_embedding(matched, emb_json)
-        session.add_all([grievance, matched])
-        session.commit()
-        cluster_id = matched.id
-        cluster_title = matched.title
-    else:
-        # Create cluster AND grievance in one transaction via shared helper
-        cluster_id, cluster_title = _create_cluster_for_grievance(
-            session, extraction, final_ward, grievance, emb_json,
-            body.latitude, body.longitude, area, location,
-        )
-
-    session.refresh(grievance)
-
-    return GrievanceResponse(
-        grievance=_grievance_to_read(grievance),
-        extraction=extraction,
-        matched_cluster_id=cluster_id if matched else None,
-        matched_cluster_title=cluster_title if matched else None,
-        suggested_action=action,
     )
 
 
@@ -387,114 +415,20 @@ def submit_audio_grievance(
     transcript = transcription.transcript
     detected_language = transcription.detected_language or "unknown"
 
-    # 5. Run existing extraction pipeline on the English transcript returned by
-    # 5. Run existing extraction pipeline on the English transcript.
+    # 5. Run the extraction pipeline on the English transcript.
     extraction: ExtractionResult = provider.extract_grievance(
         transcript, "en-IN"
     )
 
-    # ── Ward inference from coords (BEFORE clustering) ──────────
-    from app.services.geocoding import infer_area, infer_ward, resolve_location, ward_disagrees as _ward_disagrees
-
-    final_ward = extraction.ward
-    if latitude is not None and longitude is not None:
-        inferred = infer_ward(latitude, longitude)
-        if not final_ward and inferred:
-            final_ward = inferred
-            extraction.ward = inferred
-        elif final_ward and inferred and _ward_disagrees(final_ward, latitude, longitude):
-            logger.warning(
-                "Ward mismatch: text says %s but coords (%.4f, %.4f) are near ward %s",
-                final_ward, latitude, longitude, inferred,
-            )
-
-    area = infer_area(latitude, longitude) if latitude is not None and longitude is not None else ""
-    location = resolve_location(session, latitude, longitude) if latitude is not None and longitude is not None else None
-
-    # Suppress GPS-derived area when ward sources conflict (after location resolution)
-    if latitude is not None and longitude is not None:
-        inferred = infer_ward(latitude, longitude)
-        if inferred and _ward_disagrees(final_ward, latitude, longitude) if final_ward else False:
-            area = ""
-            location = None
-
-    # Compute embedding once (shared between clustering and persistence)
-    emb_json = embed_to_json(extraction.normalized_text)
-
-    # 6. Check for matching cluster
-    matched = find_matching_cluster(
-        session, extraction,
-        grievance_embedding_json=emb_json,
-        grievance_lat=latitude,
-        grievance_lon=longitude,
-    )
-    action = "join_cluster" if matched else "create_cluster"
-
-    # 7. Create grievance object (NOT committed yet — cluster decision first)
-    grievance = Grievance(
+    return _finalize_grievance(
+        session,
+        extraction,
         user_id=user_id,
         raw_text=transcript,
         transcript_text=transcript,
-        normalized_text=extraction.normalized_text,
         language=detected_language,
-        issue_category=extraction.category,
-        department=extraction.department,
-        urgency=extraction.urgency,
-        ward=final_ward,
-        landmark=extraction.landmark,
+        consent_public=consent_public,
         latitude=latitude,
         longitude=longitude,
-        pii_redacted_text=extraction.pii_redacted_text,
-        area=location.area if location else area,
-        area_source=location.source if location else ("demo_mumbai" if area else ""),
-        suburb=location.suburb if location else "",
-        road=location.road if location else "",
-        sector=location.sector if location else "",
-        location_json=location.raw_json if location else None,
-        consent_public=consent_public,
         audio_key=audio_key,
-        embedding_json=emb_json,
-    )
-
-    # Update cluster if joined — centroid + coordinate_count
-    cluster_id = None
-    cluster_title = None
-
-    if matched:
-        grievance.cluster_id = matched.id
-        grievance.status = "clustered"
-        matched.grievance_count += 1
-        if latitude is not None and longitude is not None:
-            if matched.centroid_latitude is not None and matched.centroid_longitude is not None:
-                n = matched.coordinate_count
-                matched.centroid_latitude = (
-                    (matched.centroid_latitude * n + latitude) / (n + 1)
-                )
-                matched.centroid_longitude = (
-                    (matched.centroid_longitude * n + longitude) / (n + 1)
-                )
-            else:
-                matched.centroid_latitude = latitude
-                matched.centroid_longitude = longitude
-            matched.coordinate_count += 1
-        update_cluster_embedding(matched, emb_json)
-        session.add_all([grievance, matched])
-        session.commit()
-        cluster_id = matched.id
-        cluster_title = matched.title
-    else:
-        # Create cluster AND grievance in one transaction via shared helper
-        cluster_id, cluster_title = _create_cluster_for_grievance(
-            session, extraction, final_ward, grievance, emb_json,
-            latitude, longitude, area, location,
-        )
-
-    session.refresh(grievance)
-
-    return GrievanceResponse(
-        grievance=_grievance_to_read(grievance),
-        extraction=extraction,
-        matched_cluster_id=cluster_id if matched else None,
-        matched_cluster_title=cluster_title if matched else None,
-        suggested_action=action,
     )

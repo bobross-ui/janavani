@@ -16,7 +16,7 @@ from app.schemas import (
 router = APIRouter(prefix="/clusters", tags=["clusters"])
 
 
-def _cluster_to_read(c: IssueCluster) -> ClusterRead:
+def cluster_to_read(c: IssueCluster) -> ClusterRead:
     return ClusterRead(
         id=c.id,
         title=c.title,
@@ -54,7 +54,7 @@ def list_clusters(
         statement = statement.where(IssueCluster.status == status)
     statement = statement.order_by(IssueCluster.grievance_count.desc())
     clusters = session.exec(statement).all()
-    return [_cluster_to_read(c) for c in clusters]
+    return [cluster_to_read(c) for c in clusters]
 
 
 @router.get("/{cluster_id}", response_model=ClusterDetail)
