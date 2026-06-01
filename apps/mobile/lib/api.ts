@@ -1,15 +1,34 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 import type { Grievance, GrievanceResponse, ClusterRead, ClusterDetail } from "./types";
 
-// Set EXPO_PUBLIC_API_BASE_URL (e.g. in apps/mobile/.env) to your machine's
-// LAN IP when running on a physical device. The defaults suit the Android
-// emulator (10.0.2.2 maps to the host) and the iOS simulator (localhost).
+const API_PORT = 8000;
+
+// On a physical device, "localhost" is the device itself, not the dev machine.
+// Expo's dev server already told the device the Mac's LAN host, so derive the
+// API URL from it (works in Expo Go on a real phone without hardcoding an IP).
+// Returns undefined under tunnel mode or a production build (no Metro host).
+function devHostApiUrl(): string | undefined {
+  const c = Constants as any;
+  const hostUri: string | undefined =
+    Constants.expoConfig?.hostUri ??
+    c.expoGoConfig?.debuggerHost ??
+    c.manifest2?.extra?.expoGo?.debuggerHost ??
+    c.manifest?.debuggerHost;
+  const host = hostUri?.split(":")[0];
+  // Ignore tunnel hosts (e.g. *.exp.direct) — those only proxy Metro, not :8000.
+  if (!host || host.endsWith(".exp.direct")) return undefined;
+  return `http://${host}:${API_PORT}`;
+}
+
+// Resolution order: explicit env override → dev machine's LAN IP →
+// emulator/simulator defaults.
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
+  devHostApiUrl() ??
   Platform.select({
-    android: "http://10.0.2.2:8000",
-    ios: "http://localhost:8000",
-    default: "http://localhost:8000",
+    android: `http://10.0.2.2:${API_PORT}`,
+    default: `http://localhost:${API_PORT}`,
   });
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
