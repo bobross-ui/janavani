@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -184,28 +183,6 @@ export default function ClusterDetailScreen() {
           </View>
         ) : null}
 
-        {/* Draft */}
-        <View style={{ marginTop: 32 }}>
-          <SectionLabel n="02">Draft complaint · auto-generated</SectionLabel>
-          <View style={{ paddingHorizontal: T.pad, paddingTop: 14 }}>
-            <View style={styles.draftCard}>
-              <Text style={styles.draftTo}>
-                TO: {cluster.department || "WARD ENGINEER"}
-                {cluster.ward ? ` · WARD ${cluster.ward}` : ""}
-              </Text>
-              <Text style={styles.draftBody}>
-                "{cluster.support_count || cluster.grievance_count} citizens along the{" "}
-                {cluster.ward ? `Ward ${cluster.ward}` : "affected"} stretch report{" "}
-                {humanize(cluster.issue_category).toLowerCase()} concerns. We request
-                immediate review and a written timeline for resolution…"
-              </Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Read full draft">
-                <Text style={styles.draftAction}>Read full draft →</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
         {/* Action */}
         <View style={{ paddingHorizontal: T.pad, paddingTop: 28 }}>
           {joined ? (
@@ -288,39 +265,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1.4,
     color: T.inkSoft,
-    textTransform: "uppercase",
-  },
-
-  draftCard: {
-    padding: 16,
-    backgroundColor: T.paperAlt,
-    borderRadius: T.radius.card,
-    borderWidth: 1,
-    borderColor: T.rule,
-    // NOTE: Android renders dashed borders inconsistently (may fall back to
-    // solid). Accepted per spec; revisit with an SVG overlay if it regresses.
-    borderStyle: "dashed",
-  },
-  draftTo: {
-    fontFamily: T.mono,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    color: T.inkSoft,
-    textTransform: "uppercase",
-    marginBottom: 8,
-  },
-  draftBody: {
-    fontFamily: T.serif,
-    fontSize: 14.5,
-    lineHeight: 22,
-    color: T.inkDeep,
-  },
-  draftAction: {
-    marginTop: 12,
-    fontFamily: T.mono,
-    fontSize: 10.5,
-    letterSpacing: 1.3,
-    color: T.accentDeep,
     textTransform: "uppercase",
   },
 
