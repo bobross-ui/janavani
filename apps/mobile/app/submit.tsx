@@ -60,6 +60,13 @@ export default function SubmitScreen() {
   // Location
   const [locationConsent, setLocationConsent] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  // Mirror coords into a ref. GPS resolves asynchronously after mount, but
+  // finishRecording → uploadAudio are created with empty deps and would
+  // otherwise close over the initial coords (null) and drop them on upload.
+  const coordsRef = useRef(coords);
+  useEffect(() => {
+    coordsRef.current = coords;
+  }, [coords]);
 
   // Recording
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -177,9 +184,12 @@ export default function SubmitScreen() {
         formData.append("audio", { uri, type: "audio/m4a", name: "recording.m4a" } as any);
         formData.append("user_id", MOCK_USER_ID);
         formData.append("consent_public", "true");
-        if (coords) {
-          formData.append("latitude", String(coords.latitude));
-          formData.append("longitude", String(coords.longitude));
+        // Read from the ref so a recording started before GPS resolved still
+        // uploads the coordinates that arrived in the meantime.
+        const cur = coordsRef.current;
+        if (cur) {
+          formData.append("latitude", String(cur.latitude));
+          formData.append("longitude", String(cur.longitude));
         }
         const res = await uploadAudioGrievance(formData);
         setResult(res);
@@ -191,7 +201,7 @@ export default function SubmitScreen() {
         setLoading(false);
       }
     },
-    [coords]
+    []
   );
 
   const submitText = useCallback(async () => {
