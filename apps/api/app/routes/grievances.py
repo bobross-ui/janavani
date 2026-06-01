@@ -46,8 +46,18 @@ def get_request_ai_provider(
     x_ai_provider: Optional[str] = Header(default=None, alias="X-AI-Provider")
 ) -> AIProvider:
     settings = get_settings()
-    if settings.allow_provider_override and isinstance(x_ai_provider, str) and x_ai_provider:
-        return _provider_from_name(x_ai_provider)
+    if isinstance(x_ai_provider, str) and x_ai_provider:
+        if settings.allow_provider_override:
+            return _provider_from_name(x_ai_provider)
+        # Don't silently ignore the header — otherwise an eval run with
+        # `--provider sarvam` looks like it switched providers but actually
+        # reused the server default, producing two identical-looking reports.
+        logger.warning(
+            "Ignoring X-AI-Provider=%s: ALLOW_PROVIDER_OVERRIDE is off. "
+            "Set ALLOW_PROVIDER_OVERRIDE=true to honor per-request provider "
+            "selection (needed for /evals local-vs-Sarvam comparisons).",
+            x_ai_provider,
+        )
     return get_ai_provider()
 
 
