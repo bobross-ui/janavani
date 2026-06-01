@@ -25,6 +25,13 @@ export default function ClusterDetailPage() {
   if (error) return <div className="error">Could not load cluster: {error}</div>;
   if (!cluster) return <div className="error">Cluster not found.</div>;
 
+  // Granular geocoded location (road / suburb / area), de-duplicated; the
+  // ward/locality anchor already lives in the title.
+  const locationLine = [cluster.road, cluster.suburb || cluster.area]
+    .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .join(" · ");
+
   return (
     <div className="two-col">
       <section className="panel">
@@ -40,6 +47,7 @@ export default function ClusterDetailPage() {
           <span className="chip">{cluster.status}</span>
         </div>
         <p>{cluster.summary}</p>
+        {locationLine ? <p className="muted">{locationLine}</p> : null}
         <div className="grid stats">
           <div className="stat"><span className="value">{cluster.grievance_count}</span><span className="label">reports</span></div>
           <div className="stat"><span className="value">{cluster.support_count}</span><span className="label">supporters</span></div>

@@ -9,6 +9,7 @@ export function ClusterCard({ cluster }: { cluster: ClusterRead }) {
       <h2 className="card-title">{cluster.title}</h2>
       <div className="meta">
         <span className="chip">{cluster.issue_category.replaceAll("_", " ")}</span>
+        {cluster.area ? <span className="chip">{cluster.area}</span> : null}
         <span className="chip">Ward {cluster.ward || "unknown"}</span>
         <span className="chip">{cluster.status}</span>
         {urgent ? <span className="chip urgent">urgent</span> : null}
