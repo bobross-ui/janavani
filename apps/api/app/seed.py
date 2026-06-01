@@ -10,6 +10,7 @@ from sqlmodel import Session
 from app.db import create_db_and_tables, get_engine
 from app.models import Grievance, IssueCluster, User
 from app.models import _new_uuid
+from app.services.embeddings import embed_to_json
 
 # ── Demo users ────────────────────────────────────────────────────────
 
@@ -150,6 +151,8 @@ def seed():
             centroid_longitude=w8_lon,
             coordinate_count=len(WATER_GRIEVANCES_WARD8),
         )
+        water_cluster.centroid_embedding_json = embed_to_json(water_cluster.summary)
+        water_cluster.embedding_count = len(WATER_GRIEVANCES_WARD8)
         session.add(water_cluster)
         session.commit()
 
@@ -158,6 +161,7 @@ def seed():
                 user_id=user_objs[i % 5].id,
                 raw_text=text,
                 normalized_text=norm,
+                embedding_json=embed_to_json(norm),
                 language=lang,
                 issue_category="water_supply",
                 department="water_department",
@@ -193,6 +197,8 @@ def seed():
             centroid_longitude=w11_lon,
             coordinate_count=len(GARBAGE_GRIEVANCES_WARD11),
         )
+        garbage_cluster.centroid_embedding_json = embed_to_json(garbage_cluster.summary)
+        garbage_cluster.embedding_count = len(GARBAGE_GRIEVANCES_WARD11)
         session.add(garbage_cluster)
         session.commit()
 
@@ -201,6 +207,7 @@ def seed():
                 user_id=user_objs[5 + i % 3].id,
                 raw_text=text,
                 normalized_text=norm,
+                embedding_json=embed_to_json(norm),
                 language=lang,
                 issue_category="sanitation",
                 department="sanitation_department",
@@ -238,6 +245,8 @@ def seed():
             centroid_longitude=w4_lon,
             coordinate_count=len(ROAD_GRIEVANCES_WARD4),
         )
+        road_cluster.centroid_embedding_json = embed_to_json(road_cluster.summary)
+        road_cluster.embedding_count = len(ROAD_GRIEVANCES_WARD4)
         session.add(road_cluster)
         session.commit()
 
@@ -246,6 +255,7 @@ def seed():
                 user_id=user_objs[8 + i % 2].id,
                 raw_text=text,
                 normalized_text=norm,
+                embedding_json=embed_to_json(norm),
                 language=lang,
                 issue_category="roads",
                 department="public_works",
@@ -270,6 +280,7 @@ def seed():
                 user_id=user_objs[0].id,
                 raw_text=text,
                 normalized_text=norm,
+                embedding_json=embed_to_json(norm),
                 language=lang,
                 issue_category="electricity",
                 department="electricity_department",
