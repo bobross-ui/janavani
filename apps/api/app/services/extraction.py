@@ -7,24 +7,36 @@ from app.schemas import ExtractionResult
 
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "water_supply": [
-        "paani", "pani", "पानी", "पाणी", "नल", "nal", "water",
-        "pipe", "nal jal", "tanker", "टैंकर",
+        "paani", "pani", "पानी", "पाणी", "नल", "नळ", "nal", "water",
+        "pipe", "nal jal", "tanker", "टैंकर", "टँकर",
+        # Tamil
+        "தண்ணீர்", "குடிநீர்", "டேங்கர்",
     ],
     "sanitation": [
         "kachra", "कचरा", "garbage", "waste", "gandagi", "गंदगी",
-        "safai", "सफाई", "nala", "नाला", "drain", "sewer", "toilet",
+        "safai", "सफाई", "nala", "नाला", "गटार", "drain", "sewer", "toilet",
         "शौचालय", "swachh",
+        # Tamil
+        "குப்பை", "கழிவு",
     ],
     "roads": [
         "sadak", "सड़क", "road", "gaddha", "pothole", "footpath",
-        "rasta", "रास्ता", "path", "broken road",
+        "rasta", "रास्ता", "रस्ता", "रस्त्या", "path", "broken road",
+        # Tamil
+        "சாலை", "குழி",
     ],
     "electricity": [
-        "bijli", "बिजली", "light", "electricity", "current",
+        "bijli", "बिजली", "light", "लाइट", "electricity", "current",
         "batti", "बत्ती", "power cut", "load shedding", "transformer",
+        "ट्रांसफार्मर", "वीज",
+        # Tamil
+        "மின்சாரம்", "விளக்கு", "டிரான்ஸ்பார்மர்",
     ],
     "ration": [
-        "ration", "राशन", "PDS", "fair price shop", "pds", "सार्वजनिक वितरण",
+        "ration", "राशन", "PDS", "fair price shop", "pds", "पीडीएस",
+        "सार्वजनिक वितरण",
+        # Tamil
+        "ரேஷன்", "அரிசி", "கோதுமை",
     ],
     "pension": [
         "pension", "पेंशन", "penshan", "vriddha", "vruddha",
@@ -33,6 +45,8 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "health": [
         "doctor", "डॉक्टर", "hospital", "aspatal", "davai", "दवा",
         "swasthya", "स्वास्थ्य", "clinic", "phc", "treatment",
+        # Tamil
+        "மருத்துவர்", "மருந்து", "மருத்துவமனை",
     ],
     "education": [
         "school", "स्कूल", "vidyalaya", "college", "teacher",
@@ -45,6 +59,15 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "corruption": [
         "rishwat", "घूस", "bhrashtachar", "भ्रष्टाचार", "bribe",
     ],
+}
+
+# Precompiled left-word-boundary matchers. A keyword matches only at the start
+# of a word — so suffixed forms still hit ("drainage"→drain, "pipes"→pipe,
+# "सड़कों"→सड़क) — but mid-word substrings do NOT, which removes false
+# positives like "final"→nal, "delight"→light, "broadcast"→road, "sympathy"→path.
+CATEGORY_PATTERNS: dict[str, list[re.Pattern]] = {
+    category: [re.compile(r"(?<!\w)" + re.escape(kw)) for kw in keywords]
+    for category, keywords in CATEGORY_KEYWORDS.items()
 }
 
 # ── Department mapping ────────────────────────────────────────────────
@@ -124,11 +147,11 @@ def extract_grievance(
     normalized = _normalize(text)
     lower = normalized.lower()
 
-    # Classify
+    # Classify — count distinct keywords whose left-boundary pattern matches.
     best_category = "other"
     best_score = 0
-    for category, keywords in CATEGORY_KEYWORDS.items():
-        score = sum(1 for kw in keywords if kw in lower)
+    for category, patterns in CATEGORY_PATTERNS.items():
+        score = sum(1 for pat in patterns if pat.search(lower))
         if score > best_score:
             best_score = score
             best_category = category
