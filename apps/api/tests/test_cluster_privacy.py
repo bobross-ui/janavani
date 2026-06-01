@@ -69,3 +69,75 @@ def test_cluster_detail_returns_only_redacted_public_samples():
     assert "9999999999" not in str(sample)
 
     app.dependency_overrides.clear()
+
+
+def test_created_cluster_summary_is_redacted(monkeypatch):
+    """H2: an auto-created cluster's public summary must be PII-redacted.
+
+    Before the fix the summary was set to raw normalized_text, leaking any
+    phone/email/Aadhaar in the grievance onto the public dashboard.
+    """
+    monkeypatch.setenv("AI_PROVIDER", "local")
+    monkeypatch.delenv("SARVAM_API_KEY", raising=False)
+    engine = _setup_test_db()
+    with Session(engine) as session:
+        user = User(phone_number="9876543210", display_name="A")
+        session.add(user)
+        session.commit()
+        user_id = user.id
+
+    client = TestClient(app)
+    resp = client.post(
+        "/grievances",
+        json={
+            "user_id": user_id,
+            "text": "paani nahi aa raha, mera number 9876543210",
+            "language": "hi",
+            "consent_public": True,
+        },
+    )
+    assert resp.status_code == 200
+    cluster_id = resp.json()["grievance"]["cluster_id"]
+    assert cluster_id
+
+    summary = client.get(f"/clusters/{cluster_id}").json()["summary"]
+    assert "9876543210" not in summary
+    assert "[PHONE_REDACTED]" in summary
+
+    app.dependency_overrides.clear()
+
+
+def test_created_cluster_summary_withheld_without_consent(monkeypatch):
+    """H4: a grievance with consent_public=False must not have its text
+    published as the public cluster summary; it falls back to the generic
+    location/category title."""
+    monkeypatch.setenv("AI_PROVIDER", "local")
+    monkeypatch.delenv("SARVAM_API_KEY", raising=False)
+    engine = _setup_test_db()
+    with Session(engine) as session:
+        user = User(phone_number="9876543210", display_name="A")
+        session.add(user)
+        session.commit()
+        user_id = user.id
+
+    client = TestClient(app)
+    resp = client.post(
+        "/grievances",
+        json={
+            "user_id": user_id,
+            "text": "kachra nahi uth raha, mera number 9876543210",
+            "language": "hi",
+            "consent_public": False,
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    cluster_id = body["grievance"]["cluster_id"]
+    assert cluster_id
+
+    detail = client.get(f"/clusters/{cluster_id}").json()
+    assert "9876543210" not in detail["summary"]
+    # withheld → summary is the generic title, not the citizen's words
+    assert detail["summary"] == detail["title"]
+
+    app.dependency_overrides.clear()

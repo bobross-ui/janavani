@@ -22,6 +22,7 @@ from app.services.ai_provider import (
 from app.services.audio_storage import AudioStorage
 from app.services.clustering import find_matching_cluster, update_cluster_embedding
 from app.services.embeddings import embed_to_json
+from app.services.redaction import redact_all
 from app.services.sarvam_client import SarvamError
 
 logger = logging.getLogger(__name__)
@@ -113,9 +114,19 @@ def _create_cluster_for_grievance(
     location=None,
 ):
     """Auto-create an IssueCluster for an unmatched grievance and link it."""
+    title = _cluster_title(extraction, final_ward, area, location)
+    # The cluster summary is published on the public dashboard. Redact it at
+    # the source — normalized_text is the pivot-language clustering text and is
+    # never otherwise run through redaction (H2). And when the citizen withheld
+    # consent to public sharing, don't surface their words at all: keep the
+    # aggregate cluster but fall back to a generic, location-based summary (H4).
+    if grievance.consent_public:
+        summary = redact_all(extraction.normalized_text) or title
+    else:
+        summary = title
     new_cluster = IssueCluster(
-        title=_cluster_title(extraction, final_ward, area, location),
-        summary=extraction.normalized_text,
+        title=title,
+        summary=summary,
         issue_category=extraction.category,
         department=extraction.department,
         ward=final_ward,
