@@ -11,13 +11,17 @@ router = APIRouter(prefix="/tts", tags=["tts"])
 
 
 @router.post("")
-async def synthesize_text_to_speech(
+def synthesize_text_to_speech(
     body: TTSRequest,
     provider: AIProvider = Depends(get_request_ai_provider),
 ):
     """Convert text to speech audio (WAV).
 
     Returns raw audio/wav bytes.
+
+    Defined as a sync endpoint (not ``async``) on purpose: ``synthesize_speech``
+    does blocking HTTP I/O, so FastAPI runs this in a threadpool instead of
+    stalling the event loop.
     """
     # ── validate text length ────────────────────────────────────
     if len(body.text) > 500:

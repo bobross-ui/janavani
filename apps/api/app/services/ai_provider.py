@@ -15,6 +15,32 @@ from app.services.sarvam_client import SarvamClient, SarvamError
 logger = logging.getLogger(__name__)
 
 
+# ── Shared Sarvam HTTP client ─────────────────────────────────────────
+# A SarvamClient owns an httpx.Client (a connection pool). Providers are
+# constructed per request via get_ai_provider(), so build the client once per
+# configuration and reuse it instead of leaking a new pool on every request.
+_sarvam_client_cache: Dict[tuple, "SarvamClient"] = {}
+
+
+def _shared_sarvam_client(settings) -> "SarvamClient":
+    key = (
+        settings.sarvam_api_key,
+        settings.sarvam_api_base,
+        settings.sarvam_timeout_seconds,
+        settings.sarvam_max_retries,
+    )
+    client = _sarvam_client_cache.get(key)
+    if client is None:
+        client = SarvamClient(
+            api_key=settings.sarvam_api_key,
+            base_url=settings.sarvam_api_base,
+            timeout=settings.sarvam_timeout_seconds,
+            max_retries=settings.sarvam_max_retries,
+        )
+        _sarvam_client_cache[key] = client
+    return client
+
+
 # ── Provider protocol ─────────────────────────────────────────────────
 
 
@@ -148,12 +174,7 @@ class SarvamAIProvider:
                 "Sarvam AI provider requires SARVAM_API_KEY in environment. "
                 "Set SARVAM_API_KEY=... in .env and configure AI_PROVIDER=sarvam."
             )
-        self._client = SarvamClient(
-            api_key=settings.sarvam_api_key,
-            base_url=settings.sarvam_api_base,
-            timeout=settings.sarvam_timeout_seconds,
-            max_retries=settings.sarvam_max_retries,
-        )
+        self._client = _shared_sarvam_client(settings)
 
     @property
     def client(self) -> SarvamClient:
