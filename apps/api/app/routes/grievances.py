@@ -79,6 +79,9 @@ def _grievance_to_read(g: Grievance) -> GrievanceRead:
         ward=g.ward,
         area=g.area,
         area_source=g.area_source,
+        suburb=g.suburb,
+        road=g.road,
+        sector=g.sector,
         landmark=g.landmark,
         latitude=g.latitude,
         longitude=g.longitude,
@@ -90,28 +93,34 @@ def _grievance_to_read(g: Grievance) -> GrievanceRead:
         created_at=g.created_at,
     )
 
+def _locality_label(ward: str, area: str, location=None) -> str:
+    """Best available administrative/locality anchor — ward or not.
+
+    Indian civic geography is heterogeneous (ward / sector / zone / village),
+    so fall back through the most specific data we actually have instead of
+    assuming a ward. (``location.sector`` is a Nominatim district-level value,
+    not an urban "Sector N"; capturing a true sector number is future work.)
+    """
+    if ward:
+        return f"Ward {ward}"
+    if location and location.suburb:
+        return location.suburb
+    if area:
+        return area
+    if location and location.sector:
+        return location.sector
+    if location and location.city:
+        return location.city
+    return ""
+
+
 def _cluster_title(extraction, final_ward: str, area: str, location=None) -> str:
-    """Build a human-readable cluster title using available location data."""
+    """Issue + best locality anchor. Granular road/suburb/area are carried on
+    the structured location fields (and shown in the UI), not piled into the
+    title."""
     cat = extraction.category.replace("_", " ").title()
-
-    # Prefer specific location markers
-    loc = location
-    if loc and loc.landmark:
-        base = f"{cat} near {loc.landmark}"
-    elif loc and loc.road:
-        base = f"{cat} on {loc.road}"
-    elif area:
-        base = f"{cat} near {area}"
-    else:
-        base = cat
-
-    # Add administrative context
-    parts = [base]
-    if loc and loc.suburb and loc.suburb != area:
-        parts.append(loc.suburb)
-    if final_ward:
-        parts.append(f"Ward {final_ward}")
-    return ", ".join(parts)
+    label = _locality_label(final_ward, area, location)
+    return f"{cat}, {label}" if label else cat
 
 def _create_cluster_for_grievance(
     session: Session,
